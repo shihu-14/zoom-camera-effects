@@ -6,6 +6,7 @@ Real-time webcam filtering that blurs only the quadrilateral formed by both thum
 
 - Python 3.10+
 - A webcam
+- MediaPipe `0.10.21`, installed through this package
 - A virtual camera backend supported by `pyvirtualcam`
   - macOS: OBS Virtual Camera is recommended
   - Linux: `v4l2loopback`
@@ -22,13 +23,13 @@ python3 -m pip install -e ".[dev]"
 Send processed video to a virtual camera:
 
 ```bash
-finger-quad-blur
+python3 -m finger_quad_blur
 ```
 
 Preview without virtual camera output:
 
 ```bash
-finger-quad-blur --preview --no-virtual-camera
+python3 -m finger_quad_blur --preview --no-virtual-camera
 ```
 
 ## Gesture Behavior
@@ -41,7 +42,7 @@ finger-quad-blur --preview --no-virtual-camera
 ## Zoom or Teams Setup
 
 1. Install and enable the OS virtual camera backend.
-2. Start this app with `finger-quad-blur`.
+2. Start this app with `python3 -m finger_quad_blur`.
 3. In the meeting app, select the virtual camera named by the backend.
 
 Use `--preview` to see the local processed feed while sending frames to the virtual camera.

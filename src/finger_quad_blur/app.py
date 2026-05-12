@@ -43,19 +43,19 @@ def run_app(config: AppConfig) -> int:
     actual_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)) or config.width
     actual_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) or config.height
 
-    writer = (
-        VirtualCameraWriter(actual_width, actual_height, config.fps)
-        if config.virtual_camera
-        else None
-    )
-
-    detector = HandPointDetector(
-        config.detection,
-        min_detection_confidence=config.min_detection_confidence,
-        min_tracking_confidence=config.min_tracking_confidence,
-    )
-
+    writer: VirtualCameraWriter | None = None
+    detector: HandPointDetector | None = None
     try:
+        writer = (
+            VirtualCameraWriter(actual_width, actual_height, config.fps)
+            if config.virtual_camera
+            else None
+        )
+        detector = HandPointDetector(
+            config.detection,
+            min_detection_confidence=config.min_detection_confidence,
+            min_tracking_confidence=config.min_tracking_confidence,
+        )
         with detector:
             return _loop(capture, detector, writer, config)
     finally:

@@ -1,4 +1,6 @@
 PLANS.md
+models/
+src/finger_quad_blur/models/
 __pycache__/
 *.py[cod]
 .pytest_cache/

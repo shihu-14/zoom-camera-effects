@@ -89,6 +89,19 @@ def test_detection_rejects_duplicate_handedness_when_strict():
     assert result.reason == "requires left and right hands"
 
 
+def test_detection_rejects_missing_handedness_when_strict():
+    result = build_quad_detection(
+        [
+            _hand((0.2, 0.7), (0.2, 0.2), label=None),
+            _hand((0.8, 0.7), (0.8, 0.2), label="Right"),
+        ],
+        DetectionConfig(require_distinct_handedness=True),
+    )
+
+    assert result.active is False
+    assert result.reason == "requires handedness labels"
+
+
 def test_detection_can_allow_ambiguous_handedness():
     result = build_quad_detection(
         [

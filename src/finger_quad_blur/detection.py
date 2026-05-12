@@ -55,8 +55,10 @@ def build_quad_detection(
         return DetectionResult(False, reason="requires exactly two hands")
 
     if config.require_distinct_handedness:
-        labels = [hand.label for hand in hands if hand.label]
-        if len(labels) == 2 and labels[0] == labels[1]:
+        labels = [hand.label for hand in hands]
+        if any(label is None for label in labels):
+            return DetectionResult(False, reason="requires handedness labels")
+        if labels[0] == labels[1]:
             return DetectionResult(False, reason="requires left and right hands")
 
     raw_points: list[Point] = []

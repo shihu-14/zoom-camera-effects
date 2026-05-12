@@ -9,9 +9,9 @@ description = "Real-time hand gesture quadrilateral blur with virtual camera out
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mediapipe>=0.10.0",
-    "numpy>=1.24",
-    "opencv-python>=4.8",
+    "mediapipe==0.10.21",
+    "numpy>=1.24,<2",
+    "opencv-contrib-python>=4.8,<4.12",
     "pyvirtualcam>=0.12",
 ]
 
