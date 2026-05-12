@@ -46,3 +46,13 @@ python3 -m finger_quad_blur --preview --no-virtual-camera
 3. In the meeting app, select the virtual camera named by the backend.
 
 Use `--preview` to see the local processed feed while sending frames to the virtual camera.
+
+## Troubleshooting
+
+If virtual camera startup fails on macOS, open OBS once, choose
+`Start Virtual Camera`, approve the system extension in System Settings, then
+restart the app. You can still validate gesture tracking locally with:
+
+```bash
+python3 -m finger_quad_blur --preview --no-virtual-camera
+```

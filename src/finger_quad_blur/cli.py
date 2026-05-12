@@ -34,7 +34,10 @@ def main() -> int:
         min_detection_confidence=args.min_detection_confidence,
         min_tracking_confidence=args.min_tracking_confidence,
     )
-    return run_app(config)
+    try:
+        return run_app(config)
+    except RuntimeError as exc:
+        parser.exit(2, f"error: {exc}\n")
 
 
 def _build_parser() -> argparse.ArgumentParser:
