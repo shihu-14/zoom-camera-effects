@@ -23,6 +23,7 @@ class AppConfig:
     preview: bool = False
     virtual_camera: bool = True
     mirror: bool = False
+    max_frames: int | None = None
     detection: DetectionConfig = DetectionConfig()
     blur: BlurConfig = BlurConfig()
     min_detection_confidence: float = 0.75
@@ -76,6 +77,7 @@ def _loop(
 ) -> int:
     last_report = perf_counter()
     frames = 0
+    total_frames = 0
 
     while True:
         ok, frame = capture.read()
@@ -97,6 +99,10 @@ def _loop(
                 return 0
 
         frames += 1
+        total_frames += 1
+        if config.max_frames is not None and total_frames >= config.max_frames:
+            return 0
+
         now = perf_counter()
         if now - last_report >= 5.0:
             observed_fps = frames / (now - last_report)

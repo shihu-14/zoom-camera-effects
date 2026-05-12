@@ -32,6 +32,13 @@ Preview without virtual camera output:
 python3 -m finger_quad_blur --preview --no-virtual-camera
 ```
 
+Run a short smoke test that opens the webcam, processes frames, sends them to
+the virtual camera, then exits:
+
+```bash
+python3 -m finger_quad_blur --max-frames 30
+```
+
 ## Gesture Behavior
 
 - Blur activates only when exactly two hands are detected and both thumb tips and index fingertips are visible.

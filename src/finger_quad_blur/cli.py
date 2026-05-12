@@ -30,6 +30,7 @@ def main() -> int:
         preview=args.preview,
         virtual_camera=not args.no_virtual_camera,
         mirror=args.mirror,
+        max_frames=args.max_frames,
         detection=DetectionConfig(
             min_hand_score=args.min_hand_score,
             min_point_score=args.min_point_score,
@@ -61,6 +62,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--no-virtual-camera", action="store_true")
     parser.add_argument("--mirror", action="store_true")
+    parser.add_argument("--max-frames", type=int)
     parser.add_argument("--blur-kernel", type=int, default=35)
     parser.add_argument("--edge-feather", type=int, default=3)
     parser.add_argument("--min-hand-score", type=float, default=0.75)
