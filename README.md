@@ -20,13 +20,28 @@ python3 -m pip install -e ".[dev]"
 
 ## Run
 
-Send processed video to a virtual camera:
+On macOS, create and launch the app bundle so Camera permission belongs to
+Finger Quad Blur instead of Terminal:
+
+```bash
+python3 scripts/create_macos_app.py
+open "dist/Finger Quad Blur.app"
+```
+
+Preview without virtual camera output:
+
+```bash
+open "dist/Finger Quad Blur Preview.app"
+```
+
+Command-line launch is still available for debugging, but macOS will attribute
+webcam access to Terminal or Python:
 
 ```bash
 python3 -m finger_quad_blur
 ```
 
-Preview without virtual camera output:
+Command-line preview:
 
 ```bash
 python3 -m finger_quad_blur --preview --no-virtual-camera
@@ -68,7 +83,7 @@ python3 -m finger_quad_blur --effect mosaic --mosaic-block-size 24
 ## Zoom or Teams Setup
 
 1. Install and enable the OS virtual camera backend.
-2. Start this app with `python3 -m finger_quad_blur`.
+2. Start this app with `open "dist/Finger Quad Blur.app"`.
 3. In the meeting app, select the virtual camera named by the backend.
 
 Use `--preview` to see the local processed feed while sending frames to the virtual camera.
@@ -89,5 +104,6 @@ restart the app. You can still validate gesture tracking locally with:
 python3 -m finger_quad_blur --preview --no-virtual-camera
 ```
 
-If camera input fails, grant Camera access to Terminal or the Python executable
-in `System Settings > Privacy & Security > Camera`.
+If camera input fails, grant Camera access to `Finger Quad Blur` in
+`System Settings > Privacy & Security > Camera`. For command-line debugging,
+grant access to Terminal or the Python executable instead.
