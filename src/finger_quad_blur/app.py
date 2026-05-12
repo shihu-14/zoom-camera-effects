@@ -8,8 +8,9 @@ from time import perf_counter
 import cv2
 
 from .detection import DetectionConfig
-from .effects import BlurConfig, apply_polygon_blur
+from .effects import BlurConfig
 from .hand_tracker import HandPointDetector
+from .processor import FrameProcessor
 from .virtual_camera import VirtualCameraWriter
 
 
@@ -56,8 +57,9 @@ def run_app(config: AppConfig) -> int:
             min_detection_confidence=config.min_detection_confidence,
             min_tracking_confidence=config.min_tracking_confidence,
         )
+        processor = FrameProcessor(detector, config.blur)
         with detector:
-            return _loop(capture, detector, writer, config)
+            return _loop(capture, processor, writer, config)
     finally:
         capture.release()
         if writer is not None:
@@ -68,7 +70,7 @@ def run_app(config: AppConfig) -> int:
 
 def _loop(
     capture: cv2.VideoCapture,
-    detector: HandPointDetector,
+    processor: FrameProcessor,
     writer: VirtualCameraWriter | None,
     config: AppConfig,
 ) -> int:
@@ -83,12 +85,8 @@ def _loop(
         if config.mirror:
             frame = cv2.flip(frame, 1)
 
-        detection = detector.detect(frame)
-        processed = apply_polygon_blur(
-            frame,
-            detection.points if detection.active else None,
-            config.blur,
-        )
+        processed_frame = processor.process(frame)
+        processed = processed_frame.frame_bgr
 
         if writer is not None:
             writer.send_bgr(processed)

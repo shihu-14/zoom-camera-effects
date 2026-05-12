@@ -11,6 +11,10 @@ def test_run_doctor_returns_failure_when_any_check_fails(monkeypatch):
         lambda: CheckResult("hand tracker", True, "ready"),
     )
     monkeypatch.setattr(
+        "finger_quad_blur.doctor._check_effect_pipeline",
+        lambda _width, _height, _fps: CheckResult("effect pipeline", True, "ready"),
+    )
+    monkeypatch.setattr(
         "finger_quad_blur.doctor._check_virtual_camera",
         lambda _width, _height, _fps: CheckResult("virtual camera", False, "missing"),
     )
@@ -31,6 +35,10 @@ def test_run_doctor_returns_success_when_checks_pass(monkeypatch):
     monkeypatch.setattr(
         "finger_quad_blur.doctor._check_mediapipe_hands",
         lambda: CheckResult("hand tracker", True, "ready"),
+    )
+    monkeypatch.setattr(
+        "finger_quad_blur.doctor._check_effect_pipeline",
+        lambda _width, _height, _fps: CheckResult("effect pipeline", True, "ready"),
     )
     monkeypatch.setattr(
         "finger_quad_blur.doctor._check_virtual_camera",

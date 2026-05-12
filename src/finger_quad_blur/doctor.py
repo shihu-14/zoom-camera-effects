@@ -5,7 +5,12 @@ from __future__ import annotations
 import platform
 import subprocess
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Callable
+
+import numpy as np
+
+from .effects import BlurConfig, apply_polygon_blur
 
 
 @dataclass(frozen=True)
@@ -24,6 +29,7 @@ def run_doctor(
     results = [
         _check_imports(),
         _check_mediapipe_hands(),
+        _check_effect_pipeline(width, height, fps),
         _check_virtual_camera(width, height, fps),
     ]
     if platform.system() == "Darwin":
@@ -77,6 +83,39 @@ def _check_virtual_camera(width: int, height: int, fps: int) -> CheckResult:
         return CheckResult("virtual camera", False, str(exc).splitlines()[0])
 
     return CheckResult("virtual camera", True, device)
+
+
+def _check_effect_pipeline(width: int, height: int, target_fps: int) -> CheckResult:
+    frame = np.random.default_rng(0).integers(0, 256, (height, width, 3), dtype=np.uint8)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+    config = BlurConfig()
+
+    inactive = apply_polygon_blur(frame, None, config)
+    if not np.array_equal(inactive, frame):
+        return CheckResult("effect pipeline", False, "inactive frame changed pixels")
+
+    for _ in range(3):
+        apply_polygon_blur(frame, points, config)
+
+    frames = 20
+    started = perf_counter()
+    for _ in range(frames):
+        apply_polygon_blur(frame, points, config)
+    elapsed = perf_counter() - started
+    observed_fps = frames / elapsed if elapsed > 0 else float("inf")
+
+    if observed_fps < target_fps:
+        return CheckResult(
+            "effect pipeline",
+            False,
+            f"{observed_fps:.1f} FPS below target {target_fps}",
+        )
+
+    return CheckResult(
+        "effect pipeline",
+        True,
+        f"{observed_fps:.1f} FPS at {width}x{height}",
+    )
 
 
 def _check_macos_camera_extension() -> CheckResult:
