@@ -62,3 +62,6 @@ restart the app. You can still validate gesture tracking locally with:
 ```bash
 python3 -m finger_quad_blur --preview --no-virtual-camera
 ```
+
+If camera input fails, grant Camera access to Terminal or the Python executable
+in `System Settings > Privacy & Security > Camera`.

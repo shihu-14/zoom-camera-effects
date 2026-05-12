@@ -21,6 +21,7 @@ class CheckResult:
 
 
 def run_doctor(
+    camera_index: int = 0,
     width: int = 640,
     height: int = 480,
     fps: int = 30,
@@ -29,6 +30,7 @@ def run_doctor(
     results = [
         _check_imports(),
         _check_mediapipe_hands(),
+        _check_camera_input(camera_index),
         _check_effect_pipeline(width, height, fps),
         _check_virtual_camera(width, height, fps),
     ]
@@ -70,6 +72,32 @@ def _check_mediapipe_hands() -> CheckResult:
     ok = hasattr(mp, "solutions") and hasattr(mp.solutions, "hands")
     detail = "MediaPipe solutions hands API available" if ok else "hands API missing"
     return CheckResult("hand tracker", ok, detail)
+
+
+def _check_camera_input(camera_index: int) -> CheckResult:
+    try:
+        import cv2
+
+        capture = cv2.VideoCapture(camera_index)
+        opened = capture.isOpened()
+        ok, frame = capture.read() if opened else (False, None)
+        capture.release()
+    except Exception as exc:
+        return CheckResult("camera input", False, str(exc))
+
+    if not opened:
+        return CheckResult(
+            "camera input",
+            False,
+            (
+                f"camera index {camera_index} did not open; grant Camera access "
+                "to Terminal/Python in System Settings > Privacy & Security > Camera"
+            ),
+        )
+    if not ok or frame is None:
+        return CheckResult("camera input", False, f"camera index {camera_index} did not read a frame")
+
+    return CheckResult("camera input", True, f"camera index {camera_index} frame {frame.shape}")
 
 
 def _check_virtual_camera(width: int, height: int, fps: int) -> CheckResult:
@@ -130,7 +158,15 @@ def _check_macos_camera_extension() -> CheckResult:
         return CheckResult("macOS camera extension", False, str(exc))
 
     output = completed.stdout + completed.stderr
+    if completed.returncode != 0 and not output.strip():
+        return CheckResult("macOS camera extension", False, "systemextensionsctl list failed")
     if "com.obsproject.obs-studio.mac-camera-extension" not in output:
+        if "OSSystemExtensionErrorDomain error 1" in output:
+            return CheckResult(
+                "macOS camera extension",
+                False,
+                "systemextensionsctl list is blocked in this process; run `systemextensionsctl list` directly",
+            )
         return CheckResult(
             "macOS camera extension",
             False,

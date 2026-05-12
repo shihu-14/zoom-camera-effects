@@ -15,7 +15,12 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.doctor:
-        return run_doctor(width=args.width, height=args.height, fps=args.fps)
+        return run_doctor(
+            camera_index=args.camera_index,
+            width=args.width,
+            height=args.height,
+            fps=args.fps,
+        )
 
     config = AppConfig(
         camera_index=args.camera_index,
