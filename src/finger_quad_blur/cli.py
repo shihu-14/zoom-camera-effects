@@ -6,12 +6,16 @@ import argparse
 
 from .app import AppConfig, run_app
 from .detection import DetectionConfig
+from .doctor import run_doctor
 from .effects import BlurConfig
 
 
 def main() -> int:
     parser = _build_parser()
     args = parser.parse_args()
+
+    if args.doctor:
+        return run_doctor(width=args.width, height=args.height, fps=args.fps)
 
     config = AppConfig(
         camera_index=args.camera_index,
@@ -48,6 +52,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)
     parser.add_argument("--fps", type=int, default=30)
+    parser.add_argument("--doctor", action="store_true")
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--no-virtual-camera", action="store_true")
     parser.add_argument("--mirror", action="store_true")

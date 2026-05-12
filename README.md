@@ -49,6 +49,12 @@ Use `--preview` to see the local processed feed while sending frames to the virt
 
 ## Troubleshooting
 
+Check the runtime environment:
+
+```bash
+python3 -m finger_quad_blur --doctor
+```
+
 If virtual camera startup fails on macOS, open OBS once, choose
 `Start Virtual Camera`, approve the system extension in System Settings, then
 restart the app. You can still validate gesture tracking locally with:
