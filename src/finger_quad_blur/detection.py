@@ -7,6 +7,7 @@ from typing import Sequence
 
 from .geometry import (
     Point,
+    clamp_normalized_points,
     normalized_points_in_bounds,
     sort_quad_vertices,
 )
@@ -34,6 +35,7 @@ class RawHand:
 class DetectionConfig:
     min_hand_score: float = 0.75
     min_point_score: float = 0.5
+    point_bounds_margin: float = 0.08
     require_distinct_handedness: bool = True
 
 
@@ -72,11 +74,11 @@ def build_quad_detection(
                 return DetectionResult(False, reason="point confidence too low")
             raw_points.append((landmark.x, landmark.y))
 
-    if not normalized_points_in_bounds(raw_points):
+    if not normalized_points_in_bounds(raw_points, margin=config.point_bounds_margin):
         return DetectionResult(False, reason="required fingertips outside frame")
 
     try:
-        ordered = sort_quad_vertices(raw_points)
+        ordered = sort_quad_vertices(clamp_normalized_points(raw_points))
     except ValueError as exc:
         return DetectionResult(False, reason=str(exc))
 

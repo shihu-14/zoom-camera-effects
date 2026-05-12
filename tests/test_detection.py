@@ -63,6 +63,20 @@ def test_detection_falls_back_when_a_required_point_is_outside_frame():
     assert result.reason == "required fingertips outside frame"
 
 
+def test_detection_accepts_and_clamps_slight_edge_overshoot():
+    result = build_quad_detection(
+        [
+            _hand((-0.03, 0.9), (-0.03, 0.1), label="Left"),
+            _hand((1.03, 0.9), (1.03, 0.1), label="Right"),
+        ],
+        DetectionConfig(point_bounds_margin=0.08),
+    )
+
+    assert result.active is True
+    assert result.points is not None
+    assert all(0.0 <= x <= 1.0 and 0.0 <= y <= 1.0 for x, y in result.points)
+
+
 def test_detection_falls_back_when_point_confidence_is_low():
     result = build_quad_detection(
         [

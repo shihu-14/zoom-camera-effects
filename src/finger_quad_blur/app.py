@@ -24,6 +24,7 @@ class AppConfig:
     virtual_camera: bool = True
     mirror: bool = False
     max_frames: int | None = None
+    smoothing_factor: float = 0.35
     detection: DetectionConfig = DetectionConfig()
     blur: BlurConfig = BlurConfig()
     min_detection_confidence: float = 0.75
@@ -58,7 +59,7 @@ def run_app(config: AppConfig) -> int:
             min_detection_confidence=config.min_detection_confidence,
             min_tracking_confidence=config.min_tracking_confidence,
         )
-        processor = FrameProcessor(detector, config.blur)
+        processor = FrameProcessor(detector, config.blur, config.smoothing_factor)
         with detector:
             return _loop(capture, processor, writer, config)
     finally:

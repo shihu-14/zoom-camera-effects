@@ -63,6 +63,11 @@ def normalized_points_in_bounds(points: Sequence[Point], margin: float = 0.0) ->
     return all(lower <= x <= upper and lower <= y <= upper for x, y in points)
 
 
+def clamp_normalized_points(points: Sequence[Point]) -> tuple[Point, ...]:
+    """Clamp normalized points to the visible image area."""
+    return tuple((min(max(x, 0.0), 1.0), min(max(y, 0.0), 1.0)) for x, y in points)
+
+
 def normalized_to_pixels(points: Sequence[Point], width: int, height: int) -> np.ndarray:
     """Convert normalized points to integer pixel coordinates for OpenCV."""
     coords = np.asarray(points, dtype=np.float32)

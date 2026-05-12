@@ -80,6 +80,14 @@ python3 -m finger_quad_blur --effect blur --blur-kernel 51
 python3 -m finger_quad_blur --effect mosaic --mosaic-block-size 24
 ```
 
+For large quadrilaterals near the image edge, the app accepts small landmark
+overshoots and clamps them to the visible frame. You can tune this and the
+temporal smoothing:
+
+```bash
+python3 -m finger_quad_blur --point-bounds-margin 0.08 --smoothing-factor 0.35
+```
+
 ## Zoom or Teams Setup
 
 1. Install and enable the OS virtual camera backend.
