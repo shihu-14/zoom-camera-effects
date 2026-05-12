@@ -1,0 +1,47 @@
+# Finger Quad Blur
+
+Real-time webcam filtering that blurs only the quadrilateral formed by both thumbs and index fingers. The processed stream can be sent to a virtual camera for use in Zoom, Teams, and other video meeting apps.
+
+## Requirements
+
+- Python 3.10+
+- A webcam
+- A virtual camera backend supported by `pyvirtualcam`
+  - macOS: OBS Virtual Camera is recommended
+  - Linux: `v4l2loopback`
+  - Windows: OBS Virtual Camera
+
+## Install
+
+```bash
+python3 -m pip install -e ".[dev]"
+```
+
+## Run
+
+Send processed video to a virtual camera:
+
+```bash
+finger-quad-blur
+```
+
+Preview without virtual camera output:
+
+```bash
+finger-quad-blur --preview --no-virtual-camera
+```
+
+## Gesture Behavior
+
+- Blur activates only when exactly two hands are detected and both thumb tips and index fingertips are visible.
+- If either hand or any required fingertip is lost, the current frame is output unchanged.
+- The four fingertip points are sorted geometrically, so swapped hand positions and vertical movement still produce a stable polygon.
+- No temporal hold is used; the blur disappears on the next processed frame after detection fails. At 30 FPS this is about 33 ms.
+
+## Zoom or Teams Setup
+
+1. Install and enable the OS virtual camera backend.
+2. Start this app with `finger-quad-blur`.
+3. In the meeting app, select the virtual camera named by the backend.
+
+Use `--preview` to see the local processed feed while sending frames to the virtual camera.
