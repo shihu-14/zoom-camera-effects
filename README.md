@@ -41,10 +41,29 @@ python3 -m finger_quad_blur --max-frames 30
 
 ## Gesture Behavior
 
-- Blur activates only when exactly two hands are detected and both thumb tips and index fingertips are visible.
+- The selected effect activates only when exactly two hands are detected and both thumb tips and index fingertips are visible.
 - If either hand or any required fingertip is lost, the current frame is output unchanged.
 - The four fingertip points are sorted geometrically, so swapped hand positions and vertical movement still produce a stable polygon.
+- The quadrilateral has no minimum size gate; any four valid fingertip points are accepted.
 - No temporal hold is used; the blur disappears on the next processed frame after detection fails. At 30 FPS this is about 33 ms.
+
+## Effects
+
+Choose the area effect with `--effect`:
+
+```bash
+python3 -m finger_quad_blur --effect blur
+python3 -m finger_quad_blur --effect mosaic
+python3 -m finger_quad_blur --effect invert
+python3 -m finger_quad_blur --effect grayscale
+```
+
+Tuning options:
+
+```bash
+python3 -m finger_quad_blur --effect blur --blur-kernel 51
+python3 -m finger_quad_blur --effect mosaic --mosaic-block-size 24
+```
 
 ## Zoom or Teams Setup
 

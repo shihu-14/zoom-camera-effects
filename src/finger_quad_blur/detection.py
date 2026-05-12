@@ -8,7 +8,6 @@ from typing import Sequence
 from .geometry import (
     Point,
     normalized_points_in_bounds,
-    polygon_area,
     sort_quad_vertices,
 )
 
@@ -35,7 +34,6 @@ class RawHand:
 class DetectionConfig:
     min_hand_score: float = 0.75
     min_point_score: float = 0.5
-    min_area_ratio: float = 0.01
     require_distinct_handedness: bool = True
 
 
@@ -81,9 +79,6 @@ def build_quad_detection(
         ordered = sort_quad_vertices(raw_points)
     except ValueError as exc:
         return DetectionResult(False, reason=str(exc))
-
-    if polygon_area(ordered) < config.min_area_ratio:
-        return DetectionResult(False, reason="quadrilateral area too small")
 
     return DetectionResult(True, points=ordered, reason="active")
 

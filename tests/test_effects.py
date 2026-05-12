@@ -26,3 +26,55 @@ def test_blur_changes_only_polygon_region():
 
     assert np.array_equal(output[5, 5], frame[5, 5])
     assert not np.array_equal(output[40, 40], frame[40, 40])
+
+
+def test_mosaic_changes_only_polygon_region():
+    y_indices, x_indices = np.indices((80, 80))
+    frame = np.dstack(
+        [
+            (x_indices * 3).astype(np.uint8),
+            (y_indices * 3).astype(np.uint8),
+            ((x_indices + y_indices) * 2).astype(np.uint8),
+        ]
+    )
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="mosaic", mosaic_block_size=12, edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[5, 5], frame[5, 5])
+    assert not np.array_equal(output[40, 40], frame[40, 40])
+
+
+def test_invert_changes_only_polygon_region():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (10, 20, 30)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="invert", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert np.array_equal(output[10, 10], np.array([245, 235, 225], dtype=np.uint8))
+
+
+def test_grayscale_changes_only_polygon_region():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (20, 80, 200)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="grayscale", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert output[10, 10, 0] == output[10, 10, 1] == output[10, 10, 2]
+    assert not np.array_equal(output[10, 10], frame[10, 10])

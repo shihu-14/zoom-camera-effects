@@ -34,12 +34,13 @@ def main() -> int:
         detection=DetectionConfig(
             min_hand_score=args.min_hand_score,
             min_point_score=args.min_point_score,
-            min_area_ratio=args.min_area_ratio,
             require_distinct_handedness=not args.allow_ambiguous_handedness,
         ),
         blur=BlurConfig(
+            mode=_normalize_effect_mode(args.effect),
             kernel_size=args.blur_kernel,
             edge_feather_px=args.edge_feather,
+            mosaic_block_size=args.mosaic_block_size,
         ),
         min_detection_confidence=args.min_detection_confidence,
         min_tracking_confidence=args.min_tracking_confidence,
@@ -52,7 +53,7 @@ def main() -> int:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Blur the quadrilateral formed by both thumbs and index fingers."
+        description="Apply an effect inside the quadrilateral formed by both thumbs and index fingers."
     )
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--width", type=int, default=1280)
@@ -63,11 +64,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-virtual-camera", action="store_true")
     parser.add_argument("--mirror", action="store_true")
     parser.add_argument("--max-frames", type=int)
+    parser.add_argument(
+        "--effect",
+        choices=("blur", "mosaic", "invert", "grayscale", "monochrome"),
+        default="blur",
+    )
     parser.add_argument("--blur-kernel", type=int, default=35)
+    parser.add_argument("--mosaic-block-size", type=int, default=18)
     parser.add_argument("--edge-feather", type=int, default=3)
     parser.add_argument("--min-hand-score", type=float, default=0.75)
     parser.add_argument("--min-point-score", type=float, default=0.5)
-    parser.add_argument("--min-area-ratio", type=float, default=0.01)
     parser.add_argument("--min-detection-confidence", type=float, default=0.75)
     parser.add_argument("--min-tracking-confidence", type=float, default=0.75)
     parser.add_argument(
@@ -76,6 +82,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="accept two detected hands even if MediaPipe reports the same hand label",
     )
     return parser
+
+
+def _normalize_effect_mode(value: str) -> str:
+    return "grayscale" if value == "monochrome" else value
 
 
 if __name__ == "__main__":

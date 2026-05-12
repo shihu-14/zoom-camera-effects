@@ -112,3 +112,15 @@ def test_detection_can_allow_ambiguous_handedness():
     )
 
     assert result.active is True
+
+
+def test_detection_does_not_reject_small_quadrilateral_by_area():
+    result = build_quad_detection(
+        [
+            _hand((0.500, 0.500), (0.501, 0.500), label="Left"),
+            _hand((0.501, 0.501), (0.500, 0.501), label="Right"),
+        ],
+        DetectionConfig(),
+    )
+
+    assert result.active is True
