@@ -82,3 +82,62 @@ def test_grayscale_changes_only_polygon_region():
     assert np.array_equal(output[1, 1], frame[1, 1])
     assert output[10, 10, 0] == output[10, 10, 1] == output[10, 10, 2]
     assert not np.array_equal(output[10, 10], frame[10, 10])
+
+
+def test_edge_changes_only_polygon_region():
+    frame = np.zeros((60, 60, 3), dtype=np.uint8)
+    frame[:, 30:] = 255
+    points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
+
+    output = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="edge", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[5, 5], frame[5, 5])
+    assert not np.array_equal(output[20:40, 20:40], frame[20:40, 20:40])
+
+
+def test_thermal_changes_only_polygon_region():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (20, 80, 200)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="thermal", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert not np.array_equal(output[10, 10], frame[10, 10])
+
+
+def test_noise_changes_only_polygon_region():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="noise", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert not np.array_equal(output[10, 10], frame[10, 10])
+
+
+def test_outline_fill_changes_only_polygon_region():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (80, 120, 160)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="outline-fill", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert np.array_equal(output[10, 10], np.array([24, 24, 24], dtype=np.uint8))

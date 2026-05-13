@@ -1,3 +1,5 @@
+import pytest
+
 from finger_quad_blur.cli import _build_parser
 
 
@@ -12,3 +14,10 @@ def test_cli_can_disable_mirror():
     args = _build_parser().parse_args(["--no-mirror"])
 
     assert args.mirror is False
+
+
+@pytest.mark.parametrize("mode", ["edge", "thermal", "noise", "outline-fill"])
+def test_cli_accepts_added_effect_modes(mode):
+    args = _build_parser().parse_args(["--effect", mode])
+
+    assert args.effect == mode

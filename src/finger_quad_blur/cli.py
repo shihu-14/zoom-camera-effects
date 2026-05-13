@@ -81,7 +81,17 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--smoothing-factor", type=float, default=0.25)
     parser.add_argument(
         "--effect",
-        choices=("blur", "mosaic", "invert", "grayscale", "monochrome"),
+        choices=(
+            "blur",
+            "mosaic",
+            "invert",
+            "grayscale",
+            "monochrome",
+            "edge",
+            "thermal",
+            "noise",
+            "outline-fill",
+        ),
         default="blur",
     )
     parser.add_argument("--blur-kernel", type=int, default=35)

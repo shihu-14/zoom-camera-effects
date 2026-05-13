@@ -73,6 +73,10 @@ python3 -m finger_quad_blur --effect blur
 python3 -m finger_quad_blur --effect mosaic
 python3 -m finger_quad_blur --effect invert
 python3 -m finger_quad_blur --effect grayscale
+python3 -m finger_quad_blur --effect edge
+python3 -m finger_quad_blur --effect thermal
+python3 -m finger_quad_blur --effect noise
+python3 -m finger_quad_blur --effect outline-fill
 ```
 
 The camera image is mirrored horizontally by default so hand movement matches

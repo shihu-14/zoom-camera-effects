@@ -10,7 +10,16 @@ import numpy as np
 
 from .geometry import Point, normalized_to_pixels
 
-EffectMode = Literal["blur", "mosaic", "invert", "grayscale"]
+EffectMode = Literal[
+    "blur",
+    "mosaic",
+    "invert",
+    "grayscale",
+    "edge",
+    "thermal",
+    "noise",
+    "outline-fill",
+]
 
 
 @dataclass(frozen=True)
@@ -36,6 +45,9 @@ def apply_polygon_blur(
     cv2.fillPoly(mask, [polygon], 255)
 
     effected = _apply_effect(frame_bgr, config)
+    if config.mode == "outline-fill":
+        thickness = max(2, min(width, height) // 160)
+        cv2.polylines(effected, [polygon], True, (0, 255, 255), thickness, cv2.LINE_8)
 
     if config.edge_feather_px > 0:
         feather_size = _odd_at_least_three(config.edge_feather_px * 2 + 1)
@@ -72,6 +84,34 @@ def _apply_effect(frame_bgr: np.ndarray, config: BlurConfig) -> np.ndarray:
     if config.mode == "grayscale":
         gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
         return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+    if config.mode == "edge":
+        gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+        smoothed = cv2.GaussianBlur(gray, (5, 5), 0)
+        edges = cv2.Canny(smoothed, 60, 140)
+        return cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+
+    if config.mode == "thermal":
+        gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+        return cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+
+    if config.mode == "noise":
+        height, width = frame_bgr.shape[:2]
+        y_indices, x_indices = np.indices((height, width), dtype=np.uint16)
+        noise = np.stack(
+            [
+                (x_indices * 37 + y_indices * 17) % 256,
+                (x_indices * 11 + y_indices * 53 + 97) % 256,
+                (x_indices * 71 + y_indices * 29 + 193) % 256,
+            ],
+            axis=2,
+        ).astype(np.uint8)
+        return cv2.addWeighted(frame_bgr, 0.2, noise, 0.8, 0)
+
+    if config.mode == "outline-fill":
+        fill = np.zeros_like(frame_bgr)
+        fill[:, :] = (24, 24, 24)
+        return fill
 
     raise ValueError(f"unsupported effect mode: {config.mode}")
 
