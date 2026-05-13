@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from typing import Literal, Sequence, cast
 
 import cv2
 import numpy as np
@@ -22,6 +22,19 @@ EffectMode = Literal[
     "particles",
 ]
 
+EFFECT_MODES: tuple[EffectMode, ...] = (
+    "blur",
+    "mosaic",
+    "invert",
+    "grayscale",
+    "edge",
+    "thermal",
+    "noise",
+    "outline",
+    "particles",
+)
+EFFECT_ALIASES = {"monochrome": "grayscale"}
+
 
 @dataclass(frozen=True)
 class BlurConfig:
@@ -29,6 +42,13 @@ class BlurConfig:
     kernel_size: int = 35
     edge_feather_px: int = 3
     mosaic_block_size: int = 18
+
+
+def normalize_effect_mode(value: str) -> EffectMode:
+    mode = EFFECT_ALIASES.get(value, value)
+    if mode not in EFFECT_MODES:
+        raise ValueError(f"unsupported effect mode: {value}")
+    return cast(EffectMode, mode)
 
 
 def apply_polygon_blur(

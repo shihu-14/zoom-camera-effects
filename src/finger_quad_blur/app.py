@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from pathlib import Path
 from time import perf_counter
 
 import cv2
 
+from .control import EffectControlReader, default_control_file
 from .detection import DetectionConfig
 from .effects import BlurConfig
 from .hand_tracker import HandPointDetector
@@ -27,6 +29,7 @@ class AppConfig:
     smoothing_factor: float = 0.25
     detection: DetectionConfig = DetectionConfig()
     blur: BlurConfig = BlurConfig()
+    control_file: Path | None = default_control_file()
     min_detection_confidence: float = 0.55
     min_tracking_confidence: float = 0.5
 
@@ -79,8 +82,25 @@ def _loop(
     last_report = perf_counter()
     frames = 0
     total_frames = 0
+    control_reader = (
+        EffectControlReader(config.control_file)
+        if config.control_file is not None
+        else None
+    )
 
     while True:
+        if control_reader is not None:
+            try:
+                effect_mode = control_reader.read_effect()
+            except ValueError as exc:
+                print(f"warning: ignoring runtime control command: {exc}")
+                effect_mode = None
+            if effect_mode is not None and effect_mode != processor.blur_config.mode:
+                processor.set_blur_config(
+                    replace(processor.blur_config, mode=effect_mode)
+                )
+                print(f"effect switched: {effect_mode}")
+
         ok, frame = capture.read()
         if not ok:
             raise RuntimeError("camera frame read failed")

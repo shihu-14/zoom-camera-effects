@@ -37,6 +37,13 @@ class FrameProcessor:
         self._previous_points_3d: tuple[Point3D, ...] | None = None
         self._frame_index = 0
 
+    @property
+    def blur_config(self) -> BlurConfig:
+        return self._blur_config
+
+    def set_blur_config(self, blur_config: BlurConfig) -> None:
+        self._blur_config = blur_config
+
     def process(self, frame_bgr: np.ndarray) -> ProcessedFrame:
         detection = self._detector.detect(frame_bgr)
         detection = self._smooth_detection(detection)

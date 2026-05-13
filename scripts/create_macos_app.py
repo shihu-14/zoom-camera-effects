@@ -71,7 +71,7 @@ def main() -> int:
         python_executable=python_executable,
         app_name="Finger Quad Blur",
         bundle_id="jp.local.finger-quad-blur",
-        launcher_args="",
+        launcher_args="--no-mirror",
     )
     _create_app(
         output_dir=output_dir,
@@ -79,7 +79,7 @@ def main() -> int:
         python_executable=python_executable,
         app_name="Finger Quad Blur Preview",
         bundle_id="jp.local.finger-quad-blur.preview",
-        launcher_args="--preview --no-virtual-camera",
+        launcher_args="--preview --no-virtual-camera --mirror",
     )
 
     print(f"created app launchers in {output_dir}")

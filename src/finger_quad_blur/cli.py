@@ -3,16 +3,25 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from .app import AppConfig, run_app
+from .control import default_control_file, write_effect_command
 from .detection import DetectionConfig
 from .doctor import run_doctor
-from .effects import BlurConfig
+from .effects import EFFECT_MODES, BlurConfig, normalize_effect_mode
+
+EFFECT_CHOICES = (*EFFECT_MODES, "monochrome")
 
 
 def main() -> int:
     parser = _build_parser()
     args = parser.parse_args()
+
+    if args.set_effect:
+        control_file = write_effect_command(args.set_effect, args.control_file)
+        print(f"effect command written: {args.set_effect} -> {control_file}")
+        return 0
 
     if args.doctor:
         return run_doctor(
@@ -44,6 +53,7 @@ def main() -> int:
             edge_feather_px=args.edge_feather,
             mosaic_block_size=args.mosaic_block_size,
         ),
+        control_file=None if args.no_control else args.control_file,
         min_detection_confidence=args.min_detection_confidence,
         min_tracking_confidence=args.min_tracking_confidence,
     )
@@ -78,21 +88,26 @@ def _build_parser() -> argparse.ArgumentParser:
         help="do not mirror the camera image horizontally",
     )
     parser.add_argument("--max-frames", type=int)
+    parser.add_argument(
+        "--control-file",
+        type=Path,
+        default=default_control_file(),
+        help="file used for runtime effect switching commands",
+    )
+    parser.add_argument(
+        "--no-control",
+        action="store_true",
+        help="disable runtime effect switching from the control file",
+    )
+    parser.add_argument(
+        "--set-effect",
+        choices=EFFECT_CHOICES,
+        help="write a runtime effect switch command and exit",
+    )
     parser.add_argument("--smoothing-factor", type=float, default=0.25)
     parser.add_argument(
         "--effect",
-        choices=(
-            "blur",
-            "mosaic",
-            "invert",
-            "grayscale",
-            "monochrome",
-            "edge",
-            "thermal",
-            "noise",
-            "outline",
-            "particles",
-        ),
+        choices=EFFECT_CHOICES,
         default="blur",
     )
     parser.add_argument("--blur-kernel", type=int, default=35)
@@ -120,7 +135,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _normalize_effect_mode(value: str) -> str:
-    return "grayscale" if value == "monochrome" else value
+    return normalize_effect_mode(value)
 
 
 if __name__ == "__main__":

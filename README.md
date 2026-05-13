@@ -41,6 +41,13 @@ webcam access to Terminal or Python:
 python3 -m finger_quad_blur
 ```
 
+For Zoom self-view, avoid double mirroring by disabling app-side mirroring when
+launching from the command line:
+
+```bash
+python3 -m finger_quad_blur --no-mirror
+```
+
 Command-line preview:
 
 ```bash
@@ -84,7 +91,16 @@ The `particles` effect uses MediaPipe's relative landmark depth to estimate the
 fingertip plane equation and emits animated particles from the quadrilateral.
 
 The camera image is mirrored horizontally by default so hand movement matches
-the preview direction. Use `--no-mirror` if you need unmirrored output.
+the preview direction. Use `--no-mirror` if you need unmirrored output. The
+Zoom app launcher uses `--no-mirror` because Zoom mirrors your own self-view.
+
+Switch the effect while the app is running:
+
+```bash
+python3 -m finger_quad_blur --set-effect particles
+python3 -m finger_quad_blur --set-effect thermal
+python3 -m finger_quad_blur --set-effect blur
+```
 
 Tuning options:
 
@@ -105,8 +121,9 @@ python3 -m finger_quad_blur --require-distinct-handedness
 ## Zoom or Teams Setup
 
 1. Install and enable the OS virtual camera backend.
-2. Start this app with `open "dist/Finger Quad Blur.app"`.
-3. In the meeting app, select the virtual camera named by the backend.
+2. Create or refresh the macOS app launchers with `python3 scripts/create_macos_app.py`.
+3. Start this app with `open "dist/Finger Quad Blur.app"`.
+4. In the meeting app, select the virtual camera named by the backend.
 
 Use `--preview` to see the local processed feed while sending frames to the virtual camera.
 

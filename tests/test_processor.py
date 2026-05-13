@@ -100,3 +100,11 @@ def test_processor_smooths_3d_points_and_updates_plane():
     )
     assert result.plane is not None
     assert result.plane.residual < 1e-12
+
+
+def test_processor_can_switch_effect_config_without_resetting_camera():
+    processor = FrameProcessor(SequenceDetector([]), BlurConfig(mode="blur"))
+
+    processor.set_blur_config(BlurConfig(mode="particles"))
+
+    assert processor.blur_config.mode == "particles"

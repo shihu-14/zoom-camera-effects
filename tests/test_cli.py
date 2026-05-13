@@ -21,3 +21,13 @@ def test_cli_accepts_added_effect_modes(mode):
     args = _build_parser().parse_args(["--effect", mode])
 
     assert args.effect == mode
+
+
+def test_cli_accepts_runtime_effect_command(tmp_path):
+    control_file = tmp_path / "effect.txt"
+    args = _build_parser().parse_args(
+        ["--set-effect", "particles", "--control-file", str(control_file)]
+    )
+
+    assert args.set_effect == "particles"
+    assert args.control_file == control_file
