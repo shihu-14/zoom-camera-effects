@@ -8,7 +8,7 @@ from typing import Literal, Sequence
 import cv2
 import numpy as np
 
-from .geometry import Point, normalized_to_pixels
+from .geometry import PlaneEquation, Point, normalized_to_pixels
 
 EffectMode = Literal[
     "blur",
@@ -19,6 +19,7 @@ EffectMode = Literal[
     "thermal",
     "noise",
     "outline",
+    "portal",
 ]
 
 
@@ -34,6 +35,9 @@ def apply_polygon_blur(
     frame_bgr: np.ndarray,
     normalized_points: Sequence[Point] | None,
     config: BlurConfig,
+    *,
+    plane: PlaneEquation | None = None,
+    animation_phase: float = 0.0,
 ) -> np.ndarray:
     """Apply the selected effect only inside the polygon."""
     if normalized_points is None:
@@ -50,7 +54,15 @@ def apply_polygon_blur(
     mask = np.zeros((height, width), dtype=np.uint8)
     cv2.fillPoly(mask, [polygon], 255)
 
-    effected = _apply_effect(frame_bgr, config)
+    if config.mode == "portal":
+        effected = _apply_portal_effect(
+            frame_bgr,
+            polygon.reshape((-1, 2)).astype(np.float32),
+            plane,
+            animation_phase,
+        )
+    else:
+        effected = _apply_effect(frame_bgr, config)
 
     if config.edge_feather_px > 0:
         feather_size = _odd_at_least_three(config.edge_feather_px * 2 + 1)
@@ -61,7 +73,10 @@ def apply_polygon_blur(
         frame_bgr.astype(np.float32) * (1.0 - alpha)
         + effected.astype(np.float32) * alpha
     )
-    return np.clip(output, 0, 255).astype(np.uint8)
+    output = np.clip(output, 0, 255).astype(np.uint8)
+    if config.mode == "portal":
+        cv2.polylines(output, [polygon], True, (190, 25, 255), 2, cv2.LINE_AA)
+    return output
 
 
 def _apply_effect(frame_bgr: np.ndarray, config: BlurConfig) -> np.ndarray:
@@ -112,6 +127,60 @@ def _apply_effect(frame_bgr: np.ndarray, config: BlurConfig) -> np.ndarray:
         return cv2.addWeighted(frame_bgr, 0.2, noise, 0.8, 0)
 
     raise ValueError(f"unsupported effect mode: {config.mode}")
+
+
+def _apply_portal_effect(
+    frame_bgr: np.ndarray,
+    polygon: np.ndarray,
+    plane: PlaneEquation | None,
+    animation_phase: float,
+) -> np.ndarray:
+    height, width = frame_bgr.shape[:2]
+    y_indices, x_indices = np.indices((height, width), dtype=np.float32)
+    center = polygon.mean(axis=0)
+    radius = max(float(np.linalg.norm(polygon - center, axis=1).mean()), 1.0)
+
+    normal_x = 0.0
+    normal_y = 0.0
+    if plane is not None:
+        normal_x, normal_y, _ = plane.normal
+    normal_length = max((normal_x * normal_x + normal_y * normal_y) ** 0.5, 1e-6)
+    direction_x = normal_x / normal_length
+    direction_y = normal_y / normal_length
+    tilt = min(normal_length, 1.0)
+
+    dx = (x_indices - center[0]) / radius
+    dy = (y_indices - center[1]) / radius
+    dx -= direction_x * tilt * 0.18
+    dy -= direction_y * tilt * 0.18
+
+    distance = np.sqrt(dx * dx + dy * dy)
+    angle = np.arctan2(dy, dx)
+    direction = dx * direction_x + dy * direction_y
+    cross = dx * direction_y - dy * direction_x
+
+    phase = animation_phase * 0.18
+    swirl = 0.5 + 0.5 * np.sin(angle * 11.0 + distance * 17.0 - phase * 3.4)
+    streaks = 0.5 + 0.5 * np.sin(angle * 23.0 - distance * 13.0 + phase * 5.2)
+    rings = 0.5 + 0.5 * np.sin(distance * 34.0 - phase * 7.0)
+    core = np.exp(-(distance * 2.6) ** 2)
+    rim = np.exp(-((distance - 0.92) ** 2) / 0.018)
+    jet = (
+        np.clip(direction + 0.25, 0.0, 1.0)
+        * np.exp(-(cross * 2.8) ** 2)
+        * np.exp(-distance * 0.9)
+        * tilt
+    )
+    energy = np.clip(swirl * 0.55 + streaks * rings * 0.35 + rim * 0.8 + jet, 0.0, 1.0)
+
+    portal = np.zeros_like(frame_bgr, dtype=np.float32)
+    portal[:, :, 0] = 50.0 + 135.0 * energy + 80.0 * rim + 180.0 * core
+    portal[:, :, 1] = 8.0 + 28.0 * energy + 220.0 * core
+    portal[:, :, 2] = 70.0 + 185.0 * energy + 90.0 * rim + 180.0 * core
+
+    darkness = np.clip(distance - 0.25, 0.0, 1.0)
+    portal *= 1.12 - darkness[:, :, None] * 0.28
+    return np.clip(portal, 0, 255).astype(np.uint8)
 
 
 def _odd_at_least_three(value: int) -> int:

@@ -9,6 +9,7 @@ import numpy as np
 
 from .detection import DetectionResult
 from .effects import BlurConfig, apply_polygon_blur
+from .geometry import Point3D, estimate_plane_equation
 
 
 class Detector(Protocol):
@@ -33,24 +34,31 @@ class FrameProcessor:
         self._blur_config = blur_config
         self._smoothing_factor = min(max(float(smoothing_factor), 0.0), 1.0)
         self._previous_points: tuple[tuple[float, float], ...] | None = None
+        self._previous_points_3d: tuple[Point3D, ...] | None = None
+        self._frame_index = 0
 
     def process(self, frame_bgr: np.ndarray) -> ProcessedFrame:
         detection = self._detector.detect(frame_bgr)
         detection = self._smooth_detection(detection)
+        self._frame_index += 1
         processed = apply_polygon_blur(
             frame_bgr,
             detection.points if detection.active else None,
             self._blur_config,
+            plane=detection.plane,
+            animation_phase=float(self._frame_index),
         )
         return ProcessedFrame(frame_bgr=processed, detection=detection)
 
     def _smooth_detection(self, detection: DetectionResult) -> DetectionResult:
         if not detection.active or detection.points is None:
             self._previous_points = None
+            self._previous_points_3d = None
             return detection
 
         if self._previous_points is None or self._smoothing_factor <= 0.0:
             self._previous_points = detection.points
+            self._previous_points_3d = detection.points_3d
             return detection
 
         alpha = self._smoothing_factor
@@ -62,4 +70,34 @@ class FrameProcessor:
             for previous, current in zip(self._previous_points, detection.points)
         )
         self._previous_points = smoothed
-        return DetectionResult(True, points=smoothed, reason=detection.reason)
+
+        if self._previous_points_3d is None or detection.points_3d is None:
+            self._previous_points_3d = detection.points_3d
+            return DetectionResult(
+                True,
+                points=smoothed,
+                reason=detection.reason,
+                points_3d=detection.points_3d,
+                plane=detection.plane,
+            )
+
+        smoothed_3d = tuple(
+            (
+                previous[0] * (1.0 - alpha) + current[0] * alpha,
+                previous[1] * (1.0 - alpha) + current[1] * alpha,
+                previous[2] * (1.0 - alpha) + current[2] * alpha,
+            )
+            for previous, current in zip(self._previous_points_3d, detection.points_3d)
+        )
+        self._previous_points_3d = smoothed_3d
+        try:
+            plane = estimate_plane_equation(smoothed_3d)
+        except ValueError:
+            plane = None
+        return DetectionResult(
+            True,
+            points=tuple((x, y) for x, y, _ in smoothed_3d),
+            reason=detection.reason,
+            points_3d=smoothed_3d,
+            plane=plane,
+        )

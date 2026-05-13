@@ -83,6 +83,7 @@ def _landmark_point(landmark: Any) -> LandmarkPoint:
     return LandmarkPoint(
         x=float(landmark.x),
         y=float(landmark.y),
+        z=float(getattr(landmark, "z", 0.0)),
         presence=_optional_landmark_score(landmark, "presence"),
         visibility=_optional_landmark_score(landmark, "visibility"),
     )

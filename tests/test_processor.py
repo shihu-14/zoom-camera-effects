@@ -2,6 +2,7 @@ import numpy as np
 
 from finger_quad_blur.detection import DetectionResult
 from finger_quad_blur.effects import BlurConfig
+from finger_quad_blur.geometry import estimate_plane_equation
 from finger_quad_blur.processor import FrameProcessor
 
 
@@ -64,3 +65,38 @@ def test_processor_smooths_active_points_and_resets_on_inactive_frame():
     )
     assert processor.process(frame).detection.active is False
     assert processor.process(frame).detection.points == third.points
+
+
+def test_processor_smooths_3d_points_and_updates_plane():
+    frame = np.zeros((10, 10, 3), dtype=np.uint8)
+    first_points_3d = ((0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 0.0), (1.0, 0.0, 0.0))
+    second_points_3d = ((0.2, 0.2, 0.2), (0.2, 0.8, 0.2), (0.8, 0.8, 0.2), (0.8, 0.2, 0.2))
+    first = DetectionResult(
+        True,
+        points=tuple((x, y) for x, y, _ in first_points_3d),
+        points_3d=first_points_3d,
+        plane=estimate_plane_equation(first_points_3d),
+    )
+    second = DetectionResult(
+        True,
+        points=tuple((x, y) for x, y, _ in second_points_3d),
+        points_3d=second_points_3d,
+        plane=estimate_plane_equation(second_points_3d),
+    )
+    processor = FrameProcessor(
+        SequenceDetector([first, second]),
+        BlurConfig(mode="invert", edge_feather_px=0),
+        smoothing_factor=0.5,
+    )
+
+    processor.process(frame)
+    result = processor.process(frame).detection
+
+    assert result.points_3d == (
+        (0.1, 0.1, 0.1),
+        (0.1, 0.9, 0.1),
+        (0.9, 0.9, 0.1),
+        (0.9, 0.1, 0.1),
+    )
+    assert result.plane is not None
+    assert result.plane.residual < 1e-12

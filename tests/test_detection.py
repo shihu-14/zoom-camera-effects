@@ -25,6 +25,9 @@ def test_detection_requires_two_hands_and_four_visible_points():
     assert result.active is True
     assert result.points is not None
     assert len(result.points) == 4
+    assert result.points_3d is not None
+    assert len(result.points_3d) == 4
+    assert result.plane is not None
 
 
 def test_detection_falls_back_when_one_hand_is_missing():
@@ -150,3 +153,40 @@ def test_detection_does_not_reject_small_quadrilateral_by_area():
     )
 
     assert result.active is True
+
+
+def test_detection_stays_active_when_plane_is_degenerate():
+    result = build_quad_detection(
+        [
+            _hand((0.5, 0.5, 0.0), (0.5, 0.5, 0.0), label="Left"),
+            _hand((0.5, 0.5, 0.0), (0.5, 0.5, 0.0), label="Right"),
+        ],
+        DetectionConfig(),
+    )
+
+    assert result.active is True
+    assert result.points_3d is not None
+    assert result.plane is None
+
+
+def test_detection_estimates_plane_from_landmark_depth():
+    result = build_quad_detection(
+        [
+            _hand((0.2, 0.7, 0.22), (0.2, 0.2, 0.12), label="Left"),
+            _hand((0.8, 0.7, 0.52), (0.8, 0.2, 0.42), label="Right"),
+        ],
+        DetectionConfig(),
+    )
+
+    assert result.active is True
+    assert result.points_3d is not None
+    assert result.plane is not None
+    assert result.plane.residual < 1e-12
+    for x, y, z in result.points_3d:
+        value = (
+            result.plane.normal[0] * x
+            + result.plane.normal[1] * y
+            + result.plane.normal[2] * z
+            + result.plane.offset
+        )
+        assert abs(value) < 1e-12

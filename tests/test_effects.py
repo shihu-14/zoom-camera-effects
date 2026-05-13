@@ -142,3 +142,26 @@ def test_outline_draws_black_polygon_border_only():
     assert np.array_equal(output[1, 1], frame[1, 1])
     assert np.array_equal(output[10, 10], frame[10, 10])
     assert np.array_equal(output[5, 5], np.array([0, 0, 0], dtype=np.uint8))
+
+
+def test_portal_changes_only_polygon_region_and_animates():
+    frame = np.zeros((80, 80, 3), dtype=np.uint8)
+    frame[:, :] = (10, 20, 30)
+    points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
+
+    first = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="portal", edge_feather_px=0),
+        animation_phase=1.0,
+    )
+    second = apply_polygon_blur(
+        frame,
+        points,
+        BlurConfig(mode="portal", edge_feather_px=0),
+        animation_phase=20.0,
+    )
+
+    assert np.array_equal(first[5, 5], frame[5, 5])
+    assert not np.array_equal(first[40, 40], frame[40, 40])
+    assert not np.array_equal(first[30, 45], second[30, 45])
