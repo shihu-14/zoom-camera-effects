@@ -90,7 +90,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "edge",
             "thermal",
             "noise",
-            "outline-fill",
+            "outline",
         ),
         default="blur",
     )

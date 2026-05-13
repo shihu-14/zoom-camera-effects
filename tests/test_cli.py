@@ -16,7 +16,7 @@ def test_cli_can_disable_mirror():
     assert args.mirror is False
 
 
-@pytest.mark.parametrize("mode", ["edge", "thermal", "noise", "outline-fill"])
+@pytest.mark.parametrize("mode", ["edge", "thermal", "noise", "outline"])
 def test_cli_accepts_added_effect_modes(mode):
     args = _build_parser().parse_args(["--effect", mode])
 

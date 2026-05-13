@@ -128,7 +128,7 @@ def test_noise_changes_only_polygon_region():
     assert not np.array_equal(output[10, 10], frame[10, 10])
 
 
-def test_outline_fill_changes_only_polygon_region():
+def test_outline_draws_black_polygon_border_only():
     frame = np.zeros((20, 20, 3), dtype=np.uint8)
     frame[:, :] = (80, 120, 160)
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
@@ -136,8 +136,9 @@ def test_outline_fill_changes_only_polygon_region():
     output = apply_polygon_blur(
         frame,
         points,
-        BlurConfig(mode="outline-fill", edge_feather_px=0),
+        BlurConfig(mode="outline", edge_feather_px=0),
     )
 
     assert np.array_equal(output[1, 1], frame[1, 1])
-    assert np.array_equal(output[10, 10], np.array([24, 24, 24], dtype=np.uint8))
+    assert np.array_equal(output[10, 10], frame[10, 10])
+    assert np.array_equal(output[5, 5], np.array([0, 0, 0], dtype=np.uint8))
