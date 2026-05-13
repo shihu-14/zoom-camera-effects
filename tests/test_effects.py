@@ -3,8 +3,8 @@ import numpy as np
 from finger_quad_blur.effects import BlurConfig, apply_polygon_blur
 
 
-def test_default_effect_is_invert():
-    assert BlurConfig().mode == "invert"
+def test_default_effect_is_blur():
+    assert BlurConfig().mode == "blur"
 
 
 def test_inactive_blur_returns_pixel_exact_copy():

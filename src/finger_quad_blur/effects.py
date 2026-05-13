@@ -15,7 +15,7 @@ EffectMode = Literal["blur", "mosaic", "invert", "grayscale"]
 
 @dataclass(frozen=True)
 class BlurConfig:
-    mode: EffectMode = "invert"
+    mode: EffectMode = "blur"
     kernel_size: int = 35
     edge_feather_px: int = 3
     mosaic_block_size: int = 18

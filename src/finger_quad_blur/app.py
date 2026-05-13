@@ -22,7 +22,7 @@ class AppConfig:
     fps: int = 30
     preview: bool = False
     virtual_camera: bool = True
-    mirror: bool = False
+    mirror: bool = True
     max_frames: int | None = None
     smoothing_factor: float = 0.25
     detection: DetectionConfig = DetectionConfig()

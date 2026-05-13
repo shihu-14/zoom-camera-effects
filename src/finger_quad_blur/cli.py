@@ -64,13 +64,25 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--doctor", action="store_true")
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--no-virtual-camera", action="store_true")
-    parser.add_argument("--mirror", action="store_true")
+    parser.set_defaults(mirror=True)
+    parser.add_argument(
+        "--mirror",
+        dest="mirror",
+        action="store_true",
+        help="mirror the camera image horizontally (default)",
+    )
+    parser.add_argument(
+        "--no-mirror",
+        dest="mirror",
+        action="store_false",
+        help="do not mirror the camera image horizontally",
+    )
     parser.add_argument("--max-frames", type=int)
     parser.add_argument("--smoothing-factor", type=float, default=0.25)
     parser.add_argument(
         "--effect",
         choices=("blur", "mosaic", "invert", "grayscale", "monochrome"),
-        default="invert",
+        default="blur",
     )
     parser.add_argument("--blur-kernel", type=int, default=35)
     parser.add_argument("--mosaic-block-size", type=int, default=18)

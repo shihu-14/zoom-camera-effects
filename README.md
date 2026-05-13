@@ -64,7 +64,7 @@ python3 -m finger_quad_blur --max-frames 30
 
 ## Effects
 
-The default effect is color inversion. Choose another area effect with
+The default effect is Gaussian blur. Choose another area effect with
 `--effect`:
 
 ```bash
@@ -74,6 +74,9 @@ python3 -m finger_quad_blur --effect mosaic
 python3 -m finger_quad_blur --effect invert
 python3 -m finger_quad_blur --effect grayscale
 ```
+
+The camera image is mirrored horizontally by default so hand movement matches
+the preview direction. Use `--no-mirror` if you need unmirrored output.
 
 Tuning options:
 
