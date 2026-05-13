@@ -91,7 +91,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "thermal",
             "noise",
             "outline",
-            "portal",
+            "particles",
         ),
         default="blur",
     )

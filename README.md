@@ -77,11 +77,11 @@ python3 -m finger_quad_blur --effect edge
 python3 -m finger_quad_blur --effect thermal
 python3 -m finger_quad_blur --effect noise
 python3 -m finger_quad_blur --effect outline
-python3 -m finger_quad_blur --effect portal
+python3 -m finger_quad_blur --effect particles
 ```
 
-The `portal` effect uses MediaPipe's relative landmark depth to estimate the
-fingertip plane equation and animates a purple vortex inside the quadrilateral.
+The `particles` effect uses MediaPipe's relative landmark depth to estimate the
+fingertip plane equation and emits animated particles from the quadrilateral.
 
 The camera image is mirrored horizontally by default so hand movement matches
 the preview direction. Use `--no-mirror` if you need unmirrored output.
