@@ -33,10 +33,10 @@ class RawHand:
 
 @dataclass(frozen=True)
 class DetectionConfig:
-    min_hand_score: float = 0.75
+    min_hand_score: float = 0.55
     min_point_score: float = 0.5
-    point_bounds_margin: float = 0.08
-    require_distinct_handedness: bool = True
+    point_bounds_margin: float = 0.12
+    require_distinct_handedness: bool = False
 
 
 @dataclass(frozen=True)

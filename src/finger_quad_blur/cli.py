@@ -36,7 +36,7 @@ def main() -> int:
             min_hand_score=args.min_hand_score,
             min_point_score=args.min_point_score,
             point_bounds_margin=args.point_bounds_margin,
-            require_distinct_handedness=not args.allow_ambiguous_handedness,
+            require_distinct_handedness=args.require_distinct_handedness,
         ),
         blur=BlurConfig(
             mode=_normalize_effect_mode(args.effect),
@@ -66,24 +66,32 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-virtual-camera", action="store_true")
     parser.add_argument("--mirror", action="store_true")
     parser.add_argument("--max-frames", type=int)
-    parser.add_argument("--smoothing-factor", type=float, default=0.35)
+    parser.add_argument("--smoothing-factor", type=float, default=0.25)
     parser.add_argument(
         "--effect",
         choices=("blur", "mosaic", "invert", "grayscale", "monochrome"),
-        default="blur",
+        default="invert",
     )
     parser.add_argument("--blur-kernel", type=int, default=35)
     parser.add_argument("--mosaic-block-size", type=int, default=18)
     parser.add_argument("--edge-feather", type=int, default=3)
-    parser.add_argument("--min-hand-score", type=float, default=0.75)
+    parser.add_argument("--min-hand-score", type=float, default=0.55)
     parser.add_argument("--min-point-score", type=float, default=0.5)
-    parser.add_argument("--point-bounds-margin", type=float, default=0.08)
-    parser.add_argument("--min-detection-confidence", type=float, default=0.75)
-    parser.add_argument("--min-tracking-confidence", type=float, default=0.75)
+    parser.add_argument("--point-bounds-margin", type=float, default=0.12)
+    parser.add_argument("--min-detection-confidence", type=float, default=0.55)
+    parser.add_argument("--min-tracking-confidence", type=float, default=0.5)
+    parser.set_defaults(require_distinct_handedness=False)
+    parser.add_argument(
+        "--require-distinct-handedness",
+        dest="require_distinct_handedness",
+        action="store_true",
+        help="require MediaPipe to label the two hands as different sides",
+    )
     parser.add_argument(
         "--allow-ambiguous-handedness",
-        action="store_true",
-        help="accept two detected hands even if MediaPipe reports the same hand label",
+        dest="require_distinct_handedness",
+        action="store_false",
+        help="deprecated; ambiguous handedness is allowed by default",
     )
     return parser
 

@@ -64,9 +64,11 @@ python3 -m finger_quad_blur --max-frames 30
 
 ## Effects
 
-Choose the area effect with `--effect`:
+The default effect is color inversion. Choose another area effect with
+`--effect`:
 
 ```bash
+python3 -m finger_quad_blur
 python3 -m finger_quad_blur --effect blur
 python3 -m finger_quad_blur --effect mosaic
 python3 -m finger_quad_blur --effect invert
@@ -80,12 +82,13 @@ python3 -m finger_quad_blur --effect blur --blur-kernel 51
 python3 -m finger_quad_blur --effect mosaic --mosaic-block-size 24
 ```
 
-For large quadrilaterals near the image edge, the app accepts small landmark
-overshoots and clamps them to the visible frame. You can tune this and the
-temporal smoothing:
+For large quadrilaterals and hands spread far apart, the app accepts small
+landmark overshoots, does not require MediaPipe's left/right labels to be
+perfect, and smooths detected points over time. You can tune this behavior:
 
 ```bash
-python3 -m finger_quad_blur --point-bounds-margin 0.08 --smoothing-factor 0.35
+python3 -m finger_quad_blur --point-bounds-margin 0.12 --smoothing-factor 0.25
+python3 -m finger_quad_blur --require-distinct-handedness
 ```
 
 ## Zoom or Teams Setup

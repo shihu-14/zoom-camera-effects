@@ -53,7 +53,7 @@ def test_detection_falls_back_when_hand_confidence_is_low():
 def test_detection_falls_back_when_a_required_point_is_outside_frame():
     result = build_quad_detection(
         [
-            _hand((-0.1, 0.7), (0.2, 0.2), label="Left"),
+            _hand((-0.2, 0.7), (0.2, 0.2), label="Left"),
             _hand((0.8, 0.7), (0.8, 0.2), label="Right"),
         ],
         DetectionConfig(),
@@ -101,6 +101,18 @@ def test_detection_rejects_duplicate_handedness_when_strict():
 
     assert result.active is False
     assert result.reason == "requires left and right hands"
+
+
+def test_detection_accepts_duplicate_handedness_by_default():
+    result = build_quad_detection(
+        [
+            _hand((0.2, 0.7), (0.2, 0.2), label="Left"),
+            _hand((0.8, 0.7), (0.8, 0.2), label="Left"),
+        ],
+        DetectionConfig(),
+    )
+
+    assert result.active is True
 
 
 def test_detection_rejects_missing_handedness_when_strict():

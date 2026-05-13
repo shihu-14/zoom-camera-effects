@@ -24,11 +24,11 @@ class AppConfig:
     virtual_camera: bool = True
     mirror: bool = False
     max_frames: int | None = None
-    smoothing_factor: float = 0.35
+    smoothing_factor: float = 0.25
     detection: DetectionConfig = DetectionConfig()
     blur: BlurConfig = BlurConfig()
-    min_detection_confidence: float = 0.75
-    min_tracking_confidence: float = 0.75
+    min_detection_confidence: float = 0.55
+    min_tracking_confidence: float = 0.5
 
 
 def run_app(config: AppConfig) -> int:
