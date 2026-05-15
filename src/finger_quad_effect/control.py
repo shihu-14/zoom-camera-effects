@@ -29,6 +29,12 @@ class EffectControlReader:
     path: Path
     _last_mtime_ns: int | None = None
 
+    def ignore_current(self) -> None:
+        try:
+            self._last_mtime_ns = self.path.stat().st_mtime_ns
+        except FileNotFoundError:
+            self._last_mtime_ns = None
+
     def read_effect(self) -> EffectMode | None:
         try:
             stat_result = self.path.stat()

@@ -87,6 +87,8 @@ def _loop(
         if config.control_file is not None
         else None
     )
+    if control_reader is not None:
+        control_reader.ignore_current()
 
     while True:
         if control_reader is not None:

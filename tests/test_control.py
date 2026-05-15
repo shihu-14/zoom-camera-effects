@@ -15,6 +15,18 @@ def test_write_and_read_runtime_effect_command(tmp_path):
     assert reader.read_effect() is None
 
 
+def test_runtime_effect_reader_can_ignore_existing_command(tmp_path):
+    control_file = tmp_path / "effect.txt"
+    write_effect_command("particles", control_file)
+    reader = EffectControlReader(control_file)
+
+    reader.ignore_current()
+
+    assert reader.read_effect() is None
+    write_effect_command("edge", control_file)
+    assert reader.read_effect() == "edge"
+
+
 def test_runtime_effect_command_normalizes_alias(tmp_path):
     control_file = tmp_path / "effect.txt"
 
