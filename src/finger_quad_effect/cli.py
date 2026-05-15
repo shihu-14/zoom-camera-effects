@@ -9,7 +9,7 @@ from .app import AppConfig, run_app
 from .control import default_control_file, write_effect_command
 from .detection import DetectionConfig
 from .doctor import run_doctor
-from .effects import EFFECT_MODES, BlurConfig, normalize_effect_mode
+from .effects import EFFECT_MODES, EffectConfig, normalize_effect_mode
 
 EFFECT_CHOICES = (*EFFECT_MODES, "monochrome")
 
@@ -47,7 +47,7 @@ def main() -> int:
             point_bounds_margin=args.point_bounds_margin,
             require_distinct_handedness=args.require_distinct_handedness,
         ),
-        blur=BlurConfig(
+        effect=EffectConfig(
             mode=_normalize_effect_mode(args.effect),
             kernel_size=args.blur_kernel,
             edge_feather_px=args.edge_feather,

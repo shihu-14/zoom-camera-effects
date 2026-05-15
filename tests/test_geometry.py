@@ -1,6 +1,6 @@
 from itertools import permutations
 
-from finger_quad_blur.geometry import (
+from finger_quad_effect.geometry import (
     estimate_plane_equation,
     normalized_points_in_bounds,
     polygon_area,

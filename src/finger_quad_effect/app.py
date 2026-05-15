@@ -10,7 +10,7 @@ import cv2
 
 from .control import EffectControlReader, default_control_file
 from .detection import DetectionConfig
-from .effects import BlurConfig
+from .effects import EffectConfig
 from .hand_tracker import HandPointDetector
 from .processor import FrameProcessor
 from .virtual_camera import VirtualCameraWriter
@@ -28,7 +28,7 @@ class AppConfig:
     max_frames: int | None = None
     smoothing_factor: float = 0.25
     detection: DetectionConfig = DetectionConfig()
-    blur: BlurConfig = BlurConfig()
+    effect: EffectConfig = EffectConfig()
     control_file: Path | None = default_control_file()
     min_detection_confidence: float = 0.55
     min_tracking_confidence: float = 0.5
@@ -62,7 +62,7 @@ def run_app(config: AppConfig) -> int:
             min_detection_confidence=config.min_detection_confidence,
             min_tracking_confidence=config.min_tracking_confidence,
         )
-        processor = FrameProcessor(detector, config.blur, config.smoothing_factor)
+        processor = FrameProcessor(detector, config.effect, config.smoothing_factor)
         with detector:
             return _loop(capture, processor, writer, config)
     finally:
@@ -95,9 +95,9 @@ def _loop(
             except ValueError as exc:
                 print(f"warning: ignoring runtime control command: {exc}")
                 effect_mode = None
-            if effect_mode is not None and effect_mode != processor.blur_config.mode:
-                processor.set_blur_config(
-                    replace(processor.blur_config, mode=effect_mode)
+            if effect_mode is not None and effect_mode != processor.effect_config.mode:
+                processor.set_effect_config(
+                    replace(processor.effect_config, mode=effect_mode)
                 )
                 print(f"effect switched: {effect_mode}")
 
@@ -115,7 +115,7 @@ def _loop(
             writer.send_bgr(processed)
 
         if config.preview:
-            cv2.imshow("Finger Quad Blur", processed)
+            cv2.imshow("Finger Quad Effect", processed)
             if cv2.waitKey(1) & 0xFF in (27, ord("q")):
                 return 0
 
@@ -130,7 +130,7 @@ def _loop(
             if observed_fps < 10.0:
                 print(
                     f"warning: observed FPS is {observed_fps:.1f}; "
-                    "blur removal may exceed 0.1 seconds"
+                    "effect removal may exceed 0.1 seconds"
                 )
             last_report = now
             frames = 0

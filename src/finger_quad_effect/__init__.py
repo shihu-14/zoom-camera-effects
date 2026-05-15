@@ -1,4 +1,4 @@
-"""Finger quadrilateral blur package."""
+"""Finger quadrilateral effect package."""
 
 __all__ = ["__version__"]
 

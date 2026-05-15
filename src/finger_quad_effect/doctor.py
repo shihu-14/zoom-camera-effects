@@ -10,7 +10,7 @@ from typing import Callable
 
 import numpy as np
 
-from .effects import BlurConfig, apply_polygon_blur
+from .effects import EffectConfig, apply_polygon_effect
 
 
 @dataclass(frozen=True)
@@ -116,19 +116,19 @@ def _check_virtual_camera(width: int, height: int, fps: int) -> CheckResult:
 def _check_effect_pipeline(width: int, height: int, target_fps: int) -> CheckResult:
     frame = np.random.default_rng(0).integers(0, 256, (height, width, 3), dtype=np.uint8)
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
-    config = BlurConfig()
+    config = EffectConfig()
 
-    inactive = apply_polygon_blur(frame, None, config)
+    inactive = apply_polygon_effect(frame, None, config)
     if not np.array_equal(inactive, frame):
         return CheckResult("effect pipeline", False, "inactive frame changed pixels")
 
     for _ in range(3):
-        apply_polygon_blur(frame, points, config)
+        apply_polygon_effect(frame, points, config)
 
     frames = 20
     started = perf_counter()
     for _ in range(frames):
-        apply_polygon_blur(frame, points, config)
+        apply_polygon_effect(frame, points, config)
     elapsed = perf_counter() - started
     observed_fps = frames / elapsed if elapsed > 0 else float("inf")
 

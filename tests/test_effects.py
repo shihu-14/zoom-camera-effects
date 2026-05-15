@@ -1,16 +1,16 @@
 import numpy as np
 
-from finger_quad_blur.effects import BlurConfig, apply_polygon_blur
+from finger_quad_effect.effects import EffectConfig, apply_polygon_effect
 
 
 def test_default_effect_is_blur():
-    assert BlurConfig().mode == "blur"
+    assert EffectConfig().mode == "blur"
 
 
-def test_inactive_blur_returns_pixel_exact_copy():
+def test_inactive_effect_returns_pixel_exact_copy():
     frame = np.arange(30 * 40 * 3, dtype=np.uint8).reshape(30, 40, 3)
 
-    output = apply_polygon_blur(frame, None, BlurConfig())
+    output = apply_polygon_effect(frame, None, EffectConfig())
 
     assert np.array_equal(output, frame)
     assert output is not frame
@@ -22,10 +22,10 @@ def test_blur_changes_only_polygon_region():
     frame = np.dstack([checker, 255 - checker, checker])
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(kernel_size=21, edge_feather_px=0),
+        EffectConfig(kernel_size=21, edge_feather_px=0),
     )
 
     assert np.array_equal(output[5, 5], frame[5, 5])
@@ -43,10 +43,10 @@ def test_mosaic_changes_only_polygon_region():
     )
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="mosaic", mosaic_block_size=12, edge_feather_px=0),
+        EffectConfig(mode="mosaic", mosaic_block_size=12, edge_feather_px=0),
     )
 
     assert np.array_equal(output[5, 5], frame[5, 5])
@@ -58,10 +58,10 @@ def test_invert_changes_only_polygon_region():
     frame[:, :] = (10, 20, 30)
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="invert", edge_feather_px=0),
+        EffectConfig(mode="invert", edge_feather_px=0),
     )
 
     assert np.array_equal(output[1, 1], frame[1, 1])
@@ -73,10 +73,10 @@ def test_grayscale_changes_only_polygon_region():
     frame[:, :] = (20, 80, 200)
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="grayscale", edge_feather_px=0),
+        EffectConfig(mode="grayscale", edge_feather_px=0),
     )
 
     assert np.array_equal(output[1, 1], frame[1, 1])
@@ -89,10 +89,10 @@ def test_edge_changes_only_polygon_region():
     frame[:, 30:] = 255
     points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="edge", edge_feather_px=0),
+        EffectConfig(mode="edge", edge_feather_px=0),
     )
 
     assert np.array_equal(output[5, 5], frame[5, 5])
@@ -104,10 +104,10 @@ def test_thermal_changes_only_polygon_region():
     frame[:, :] = (20, 80, 200)
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="thermal", edge_feather_px=0),
+        EffectConfig(mode="thermal", edge_feather_px=0),
     )
 
     assert np.array_equal(output[1, 1], frame[1, 1])
@@ -118,10 +118,10 @@ def test_noise_changes_only_polygon_region():
     frame = np.zeros((20, 20, 3), dtype=np.uint8)
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="noise", edge_feather_px=0),
+        EffectConfig(mode="noise", edge_feather_px=0),
     )
 
     assert np.array_equal(output[1, 1], frame[1, 1])
@@ -133,10 +133,10 @@ def test_outline_draws_black_polygon_border_only():
     frame[:, :] = (80, 120, 160)
     points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
 
-    output = apply_polygon_blur(
+    output = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="outline", edge_feather_px=0),
+        EffectConfig(mode="outline", edge_feather_px=0),
     )
 
     assert np.array_equal(output[1, 1], frame[1, 1])
@@ -149,16 +149,16 @@ def test_particles_emit_from_polygon_plane_and_animate():
     frame[:, :] = (10, 20, 30)
     points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
 
-    first = apply_polygon_blur(
+    first = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="particles", edge_feather_px=0),
+        EffectConfig(mode="particles", edge_feather_px=0),
         animation_phase=1.0,
     )
-    second = apply_polygon_blur(
+    second = apply_polygon_effect(
         frame,
         points,
-        BlurConfig(mode="particles", edge_feather_px=0),
+        EffectConfig(mode="particles", edge_feather_px=0),
         animation_phase=20.0,
     )
 

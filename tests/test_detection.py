@@ -1,4 +1,4 @@
-from finger_quad_blur.detection import (
+from finger_quad_effect.detection import (
     DetectionConfig,
     LandmarkPoint,
     RawHand,

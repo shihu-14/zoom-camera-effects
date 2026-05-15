@@ -1,6 +1,6 @@
 import pytest
 
-from finger_quad_blur.cli import _build_parser
+from finger_quad_effect.cli import _build_parser
 
 
 def test_cli_defaults_to_blur_and_mirrored_image():

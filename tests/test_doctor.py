@@ -1,28 +1,28 @@
-from finger_quad_blur.doctor import CheckResult, run_doctor
+from finger_quad_effect.doctor import CheckResult, run_doctor
 
 
 def test_run_doctor_returns_failure_when_any_check_fails(monkeypatch):
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_imports",
+        "finger_quad_effect.doctor._check_imports",
         lambda: CheckResult("dependencies", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_mediapipe_hands",
+        "finger_quad_effect.doctor._check_mediapipe_hands",
         lambda: CheckResult("hand tracker", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_camera_input",
+        "finger_quad_effect.doctor._check_camera_input",
         lambda _camera_index: CheckResult("camera input", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_effect_pipeline",
+        "finger_quad_effect.doctor._check_effect_pipeline",
         lambda _width, _height, _fps: CheckResult("effect pipeline", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_virtual_camera",
+        "finger_quad_effect.doctor._check_virtual_camera",
         lambda _width, _height, _fps: CheckResult("virtual camera", False, "missing"),
     )
-    monkeypatch.setattr("finger_quad_blur.doctor.platform.system", lambda: "Linux")
+    monkeypatch.setattr("finger_quad_effect.doctor.platform.system", lambda: "Linux")
     lines = []
 
     result = run_doctor(print_line=lines.append)
@@ -33,25 +33,25 @@ def test_run_doctor_returns_failure_when_any_check_fails(monkeypatch):
 
 def test_run_doctor_returns_success_when_checks_pass(monkeypatch):
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_imports",
+        "finger_quad_effect.doctor._check_imports",
         lambda: CheckResult("dependencies", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_mediapipe_hands",
+        "finger_quad_effect.doctor._check_mediapipe_hands",
         lambda: CheckResult("hand tracker", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_camera_input",
+        "finger_quad_effect.doctor._check_camera_input",
         lambda _camera_index: CheckResult("camera input", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_effect_pipeline",
+        "finger_quad_effect.doctor._check_effect_pipeline",
         lambda _width, _height, _fps: CheckResult("effect pipeline", True, "ready"),
     )
     monkeypatch.setattr(
-        "finger_quad_blur.doctor._check_virtual_camera",
+        "finger_quad_effect.doctor._check_virtual_camera",
         lambda _width, _height, _fps: CheckResult("virtual camera", True, "ready"),
     )
-    monkeypatch.setattr("finger_quad_blur.doctor.platform.system", lambda: "Linux")
+    monkeypatch.setattr("finger_quad_effect.doctor.platform.system", lambda: "Linux")
 
     assert run_doctor(print_line=lambda _line: None) == 0

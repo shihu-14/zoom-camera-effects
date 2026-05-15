@@ -1,9 +1,9 @@
 import numpy as np
 
-from finger_quad_blur.detection import DetectionResult
-from finger_quad_blur.effects import BlurConfig
-from finger_quad_blur.geometry import estimate_plane_equation
-from finger_quad_blur.processor import FrameProcessor
+from finger_quad_effect.detection import DetectionResult
+from finger_quad_effect.effects import EffectConfig
+from finger_quad_effect.geometry import estimate_plane_equation
+from finger_quad_effect.processor import FrameProcessor
 
 
 class SequenceDetector:
@@ -14,7 +14,7 @@ class SequenceDetector:
         return self._results.pop(0)
 
 
-def test_processor_removes_blur_on_first_inactive_frame():
+def test_processor_removes_effect_on_first_inactive_frame():
     y_indices, x_indices = np.indices((80, 80))
     checker = ((x_indices + y_indices) % 2 * 255).astype(np.uint8)
     frame = np.dstack([checker, 255 - checker, checker])
@@ -25,7 +25,7 @@ def test_processor_removes_blur_on_first_inactive_frame():
     inactive = DetectionResult(False)
     processor = FrameProcessor(
         SequenceDetector([active, inactive]),
-        BlurConfig(kernel_size=21, edge_feather_px=0),
+        EffectConfig(kernel_size=21, edge_feather_px=0),
     )
 
     active_frame = processor.process(frame).frame_bgr
@@ -52,7 +52,7 @@ def test_processor_smooths_active_points_and_resets_on_inactive_frame():
     )
     processor = FrameProcessor(
         SequenceDetector([first, second, inactive, third]),
-        BlurConfig(mode="invert", edge_feather_px=0),
+        EffectConfig(mode="invert", edge_feather_px=0),
         smoothing_factor=0.5,
     )
 
@@ -85,7 +85,7 @@ def test_processor_smooths_3d_points_and_updates_plane():
     )
     processor = FrameProcessor(
         SequenceDetector([first, second]),
-        BlurConfig(mode="invert", edge_feather_px=0),
+        EffectConfig(mode="invert", edge_feather_px=0),
         smoothing_factor=0.5,
     )
 
@@ -103,8 +103,8 @@ def test_processor_smooths_3d_points_and_updates_plane():
 
 
 def test_processor_can_switch_effect_config_without_resetting_camera():
-    processor = FrameProcessor(SequenceDetector([]), BlurConfig(mode="blur"))
+    processor = FrameProcessor(SequenceDetector([]), EffectConfig(mode="blur"))
 
-    processor.set_blur_config(BlurConfig(mode="particles"))
+    processor.set_effect_config(EffectConfig(mode="particles"))
 
-    assert processor.blur_config.mode == "particles"
+    assert processor.effect_config.mode == "particles"

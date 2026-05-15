@@ -8,7 +8,7 @@ from typing import Protocol
 import numpy as np
 
 from .detection import DetectionResult
-from .effects import BlurConfig, apply_polygon_blur
+from .effects import EffectConfig, apply_polygon_effect
 from .geometry import Point3D, estimate_plane_equation
 
 
@@ -27,31 +27,31 @@ class FrameProcessor:
     def __init__(
         self,
         detector: Detector,
-        blur_config: BlurConfig,
+        effect_config: EffectConfig,
         smoothing_factor: float = 0.35,
     ) -> None:
         self._detector = detector
-        self._blur_config = blur_config
+        self._effect_config = effect_config
         self._smoothing_factor = min(max(float(smoothing_factor), 0.0), 1.0)
         self._previous_points: tuple[tuple[float, float], ...] | None = None
         self._previous_points_3d: tuple[Point3D, ...] | None = None
         self._frame_index = 0
 
     @property
-    def blur_config(self) -> BlurConfig:
-        return self._blur_config
+    def effect_config(self) -> EffectConfig:
+        return self._effect_config
 
-    def set_blur_config(self, blur_config: BlurConfig) -> None:
-        self._blur_config = blur_config
+    def set_effect_config(self, effect_config: EffectConfig) -> None:
+        self._effect_config = effect_config
 
     def process(self, frame_bgr: np.ndarray) -> ProcessedFrame:
         detection = self._detector.detect(frame_bgr)
         detection = self._smooth_detection(detection)
         self._frame_index += 1
-        processed = apply_polygon_blur(
+        processed = apply_polygon_effect(
             frame_bgr,
             detection.points if detection.active else None,
-            self._blur_config,
+            self._effect_config,
             plane=detection.plane,
             animation_phase=float(self._frame_index),
         )

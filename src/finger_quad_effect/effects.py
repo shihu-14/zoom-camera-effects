@@ -37,7 +37,7 @@ EFFECT_ALIASES = {"monochrome": "grayscale"}
 
 
 @dataclass(frozen=True)
-class BlurConfig:
+class EffectConfig:
     mode: EffectMode = "blur"
     kernel_size: int = 35
     edge_feather_px: int = 3
@@ -51,10 +51,10 @@ def normalize_effect_mode(value: str) -> EffectMode:
     return cast(EffectMode, mode)
 
 
-def apply_polygon_blur(
+def apply_polygon_effect(
     frame_bgr: np.ndarray,
     normalized_points: Sequence[Point] | None,
-    config: BlurConfig,
+    config: EffectConfig,
     *,
     plane: PlaneEquation | None = None,
     animation_phase: float = 0.0,
@@ -97,7 +97,7 @@ def apply_polygon_blur(
     return output
 
 
-def _apply_effect(frame_bgr: np.ndarray, config: BlurConfig) -> np.ndarray:
+def _apply_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
     if config.mode == "blur":
         kernel_size = _odd_at_least_three(config.kernel_size)
         return cv2.GaussianBlur(frame_bgr, (kernel_size, kernel_size), 0)

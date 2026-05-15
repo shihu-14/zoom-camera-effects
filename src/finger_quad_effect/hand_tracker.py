@@ -103,7 +103,7 @@ def _optional_landmark_score(landmark: Any, field_name: str) -> float | None:
 def _import_mediapipe() -> Any:
     os.environ.setdefault(
         "MPLCONFIGDIR",
-        str(Path(tempfile.gettempdir()) / "finger_quad_blur_matplotlib"),
+        str(Path(tempfile.gettempdir()) / "finger_quad_effect_matplotlib"),
     )
     try:
         import mediapipe as mp

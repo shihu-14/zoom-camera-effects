@@ -11,7 +11,7 @@ from .effects import EffectMode, normalize_effect_mode
 
 
 def default_control_file() -> Path:
-    return Path(tempfile.gettempdir()) / "finger_quad_blur_effect.txt"
+    return Path(tempfile.gettempdir()) / "finger_quad_effect_control.txt"
 
 
 def write_effect_command(effect: str, control_file: Path | None = None) -> Path:

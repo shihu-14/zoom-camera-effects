@@ -1,4 +1,4 @@
-"""Create the macOS app launcher for Finger Quad Blur."""
+"""Create the macOS app launcher for Finger Quad Effect."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ INFO_PLIST = Template(
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>NSCameraUsageDescription</key>
-  <string>Finger Quad Blur uses the webcam to detect thumbs and index fingers for the selected privacy effect.</string>
+  <string>Finger Quad Effect uses the webcam to detect thumbs and index fingers for the selected privacy effect.</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>
@@ -51,7 +51,7 @@ LAUNCHER = Template(
 set -e
 export PATH="${python_dir}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 cd "${repo_root}"
-exec "${python_executable}" -m finger_quad_blur ${args}
+exec "${python_executable}" -m finger_quad_effect ${args}
 """
 )
 
@@ -69,8 +69,8 @@ def main() -> int:
         output_dir=output_dir,
         repo_root=repo_root,
         python_executable=python_executable,
-        app_name="Finger Quad Blur",
-        bundle_id="jp.local.finger-quad-blur",
+        app_name="Finger Quad Effect",
+        bundle_id="jp.local.finger-quad-effect",
         launcher_args="--no-mirror",
     )
 
@@ -91,7 +91,7 @@ def _create_app(
     contents_dir = app_root / "Contents"
     macos_dir = contents_dir / "MacOS"
     resources_dir = contents_dir / "Resources"
-    executable_name = "finger-quad-blur"
+    executable_name = "finger-quad-effect"
 
     macos_dir.mkdir(parents=True, exist_ok=True)
     resources_dir.mkdir(parents=True, exist_ok=True)

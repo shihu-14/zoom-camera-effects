@@ -1,6 +1,6 @@
 import pytest
 
-from finger_quad_blur.control import EffectControlReader, write_effect_command
+from finger_quad_effect.control import EffectControlReader, write_effect_command
 
 
 def test_write_and_read_runtime_effect_command(tmp_path):
