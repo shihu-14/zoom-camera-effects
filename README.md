@@ -28,10 +28,10 @@ python3 scripts/create_macos_app.py
 open "dist/Finger Quad Blur.app"
 ```
 
-Preview without virtual camera output:
+Open the preview window without virtual camera output:
 
 ```bash
-open "dist/Finger Quad Blur Preview.app"
+python3 -m finger_quad_blur --preview --no-virtual-camera
 ```
 
 Command-line launch is still available for debugging, but macOS will attribute
@@ -46,12 +46,6 @@ launching from the command line:
 
 ```bash
 python3 -m finger_quad_blur --no-mirror
-```
-
-Command-line preview:
-
-```bash
-python3 -m finger_quad_blur --preview --no-virtual-camera
 ```
 
 Run a short smoke test that opens the webcam, processes frames, sends them to
@@ -121,7 +115,7 @@ python3 -m finger_quad_blur --require-distinct-handedness
 ## Zoom or Teams Setup
 
 1. Install and enable the OS virtual camera backend.
-2. Create or refresh the macOS app launchers with `python3 scripts/create_macos_app.py`.
+2. Create or refresh the macOS app launcher with `python3 scripts/create_macos_app.py`.
 3. Start this app with `open "dist/Finger Quad Blur.app"`.
 4. In the meeting app, select the virtual camera named by the backend.
 

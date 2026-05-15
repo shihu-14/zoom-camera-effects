@@ -1,4 +1,4 @@
-"""Create macOS app launchers for Finger Quad Blur."""
+"""Create the macOS app launcher for Finger Quad Blur."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ exec "${python_executable}" -m finger_quad_blur ${args}
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Create macOS .app launchers.")
+    parser = argparse.ArgumentParser(description="Create the macOS .app launcher.")
     parser.add_argument("--output-dir", default="dist")
     args = parser.parse_args()
 
@@ -73,16 +73,8 @@ def main() -> int:
         bundle_id="jp.local.finger-quad-blur",
         launcher_args="--no-mirror",
     )
-    _create_app(
-        output_dir=output_dir,
-        repo_root=repo_root,
-        python_executable=python_executable,
-        app_name="Finger Quad Blur Preview",
-        bundle_id="jp.local.finger-quad-blur.preview",
-        launcher_args="--preview --no-virtual-camera --mirror",
-    )
 
-    print(f"created app launchers in {output_dir}")
+    print(f"created app launcher in {output_dir}")
     return 0
 
 
