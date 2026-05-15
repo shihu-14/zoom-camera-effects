@@ -66,7 +66,12 @@ python3 -m finger_quad_effect --max-frames 30
 ## Effects
 
 The default effect is Gaussian blur. Choose another area effect with
-`--effect`:
+`--effect`. Print the available effects with `--list-effects` or
+`--help-effects`:
+
+```bash
+python3 -m finger_quad_effect --list-effects
+```
 
 ```bash
 python3 -m finger_quad_effect

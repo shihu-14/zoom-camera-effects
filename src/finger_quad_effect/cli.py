@@ -9,7 +9,12 @@ from .app import AppConfig, run_app
 from .control import default_control_file, write_effect_command
 from .detection import DetectionConfig
 from .doctor import run_doctor
-from .effects import EFFECT_MODES, EffectConfig, normalize_effect_mode
+from .effects import (
+    EFFECT_DESCRIPTIONS,
+    EFFECT_MODES,
+    EffectConfig,
+    normalize_effect_mode,
+)
 
 EFFECT_CHOICES = (*EFFECT_MODES, "monochrome")
 
@@ -17,6 +22,10 @@ EFFECT_CHOICES = (*EFFECT_MODES, "monochrome")
 def main() -> int:
     parser = _build_parser()
     args = parser.parse_args()
+
+    if args.list_effects:
+        print(_format_effect_list())
+        return 0
 
     if args.set_effect:
         control_file = write_effect_command(args.set_effect, args.control_file)
@@ -74,6 +83,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--doctor", action="store_true")
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--no-virtual-camera", action="store_true")
+    parser.add_argument(
+        "--list-effects",
+        "--help-effects",
+        action="store_true",
+        help="list available effects and exit",
+    )
     parser.set_defaults(mirror=True)
     parser.add_argument(
         "--mirror",
@@ -136,6 +151,15 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _normalize_effect_mode(value: str) -> str:
     return normalize_effect_mode(value)
+
+
+def _format_effect_list() -> str:
+    lines = ["Available effects:"]
+    for mode in EFFECT_MODES:
+        lines.append(f"  {mode:<9} {EFFECT_DESCRIPTIONS[mode]}")
+    lines.append("")
+    lines.append("Use: python3 -m finger_quad_effect --effect <name>")
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

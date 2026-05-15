@@ -33,6 +33,17 @@ EFFECT_MODES: tuple[EffectMode, ...] = (
     "outline",
     "particles",
 )
+EFFECT_DESCRIPTIONS: dict[EffectMode, str] = {
+    "blur": "Gaussian blur inside the fingertip quadrilateral.",
+    "mosaic": "Pixelated mosaic blocks inside the fingertip quadrilateral.",
+    "invert": "Inverted colors inside the fingertip quadrilateral.",
+    "grayscale": "Monochrome grayscale inside the fingertip quadrilateral.",
+    "edge": "Canny edge detection inside the fingertip quadrilateral.",
+    "thermal": "False-color thermal palette inside the fingertip quadrilateral.",
+    "noise": "Deterministic color noise inside the fingertip quadrilateral.",
+    "outline": "Black outline around the fingertip quadrilateral.",
+    "particles": "Animated particles emitted from the fingertip plane.",
+}
 EFFECT_ALIASES = {"monochrome": "grayscale"}
 
 
