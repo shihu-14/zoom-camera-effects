@@ -28,6 +28,14 @@ python3 scripts/create_macos_app.py
 open "dist/Finger Quad Effect.app"
 ```
 
+The runtime control UI opens by default in the top-left of the screen. Use its
+sliders to change effects and tuning values while the app is running. The UI
+window can be minimized from the title bar. Disable it when needed:
+
+```bash
+python3 -m finger_quad_effect --no-ui
+```
+
 Open the local preview window:
 
 ```bash
@@ -103,6 +111,9 @@ python3 -m finger_quad_effect --set-effect particles
 python3 -m finger_quad_effect --set-effect thermal
 python3 -m finger_quad_effect --set-effect blur
 ```
+
+The control UI is the preferred way to switch effects and tune options in real
+time. `--set-effect` remains available for terminal-driven changes.
 
 Tuning options:
 

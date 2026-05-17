@@ -34,6 +34,36 @@ def test_preview_disables_virtual_camera(monkeypatch):
     assert main() == 0
     assert captured["config"].preview is True
     assert captured["config"].virtual_camera is False
+    assert captured["config"].ui is True
+
+
+def test_cli_can_disable_ui(monkeypatch):
+    captured = {}
+
+    def fake_run_app(config):
+        captured["config"] = config
+        return 0
+
+    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
+    monkeypatch.setattr("sys.argv", ["finger_quad_effect", "--no-ui"])
+
+    assert main() == 0
+    assert captured["config"].ui is False
+
+
+def test_no_control_disables_ui(monkeypatch):
+    captured = {}
+
+    def fake_run_app(config):
+        captured["config"] = config
+        return 0
+
+    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
+    monkeypatch.setattr("sys.argv", ["finger_quad_effect", "--no-control"])
+
+    assert main() == 0
+    assert captured["config"].control_file is None
+    assert captured["config"].ui is False
 
 
 @pytest.mark.parametrize(

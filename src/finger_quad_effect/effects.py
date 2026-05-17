@@ -70,6 +70,16 @@ COLORMAPS = {
     "ocean": cv2.COLORMAP_OCEAN,
     "winter": cv2.COLORMAP_WINTER,
 }
+COLOR_NAMES_BGR = {
+    "black": (0, 0, 0),
+    "white": (255, 255, 255),
+    "red": (0, 0, 255),
+    "green": (0, 255, 0),
+    "blue": (255, 0, 0),
+    "cyan": (255, 255, 0),
+    "magenta": (255, 0, 255),
+    "yellow": (0, 255, 255),
+}
 
 
 @dataclass(frozen=True)
@@ -92,6 +102,28 @@ def normalize_effect_mode(value: str) -> EffectMode:
     if mode not in EFFECT_MODES:
         raise ValueError(f"unsupported effect mode: {value}")
     return cast(EffectMode, mode)
+
+
+def parse_color_bgr(value: str) -> tuple[int, int, int]:
+    normalized = value.strip().lower()
+    if normalized in COLOR_NAMES_BGR:
+        return COLOR_NAMES_BGR[normalized]
+
+    hex_value = normalized.removeprefix("#")
+    if len(hex_value) != 6:
+        raise ValueError("color must be #RRGGBB or a basic color name")
+    try:
+        red = int(hex_value[0:2], 16)
+        green = int(hex_value[2:4], 16)
+        blue = int(hex_value[4:6], 16)
+    except ValueError as exc:
+        raise ValueError("color must be #RRGGBB or a basic color name") from exc
+    return (blue, green, red)
+
+
+def format_color_hex(color_bgr: tuple[int, int, int]) -> str:
+    blue, green, red = (min(max(int(channel), 0), 255) for channel in color_bgr)
+    return f"#{red:02x}{green:02x}{blue:02x}"
 
 
 def apply_polygon_effect(

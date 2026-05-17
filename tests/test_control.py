@@ -1,6 +1,14 @@
+import json
+
 import pytest
 
-from finger_quad_effect.control import EffectControlReader, write_effect_command
+from finger_quad_effect.control import (
+    EffectControlReader,
+    effect_config_from_mapping,
+    write_effect_command,
+    write_effect_config,
+)
+from finger_quad_effect.effects import EffectConfig
 
 
 def test_write_and_read_runtime_effect_command(tmp_path):
@@ -13,6 +21,25 @@ def test_write_and_read_runtime_effect_command(tmp_path):
 
     assert reader.read_effect() == "particles"
     assert reader.read_effect() is None
+
+
+def test_write_and_read_runtime_effect_config(tmp_path):
+    control_file = tmp_path / "effect.txt"
+    reader = EffectControlReader(control_file)
+    config = EffectConfig(
+        mode="neon",
+        kernel_size=51,
+        sigma=7,
+        noise_strength=0.9,
+        outline_color_bgr=(255, 255, 0),
+    )
+
+    write_effect_config(config, control_file)
+
+    result = reader.read_config()
+    assert result == config
+    payload = json.loads(control_file.read_text(encoding="utf-8"))
+    assert payload["outline_color"] == "#00ffff"
 
 
 def test_runtime_effect_reader_can_ignore_existing_command(tmp_path):
@@ -38,3 +65,41 @@ def test_runtime_effect_command_normalizes_alias(tmp_path):
 def test_runtime_effect_command_rejects_unknown_mode(tmp_path):
     with pytest.raises(ValueError):
         write_effect_command("unknown", tmp_path / "effect.txt")
+
+
+def test_runtime_effect_config_preserves_existing_options():
+    base = EffectConfig(mode="blur", kernel_size=51, noise_strength=0.4)
+
+    result = effect_config_from_mapping({"mode": "glitch"}, base)
+
+    assert result.mode == "glitch"
+    assert result.kernel_size == 51
+    assert result.noise_strength == 0.4
+
+
+def test_runtime_effect_config_accepts_ui_aliases():
+    result = effect_config_from_mapping(
+        {
+            "mode": "neon",
+            "kernel": 31,
+            "block_size": 22,
+            "feather": 4,
+            "threshold_low": 20,
+            "threshold_high": 100,
+            "colormap": "turbo",
+            "strength": 0.7,
+            "thickness": 5,
+            "outline_color": "#00ffff",
+        }
+    )
+
+    assert result.mode == "neon"
+    assert result.kernel_size == 31
+    assert result.mosaic_block_size == 22
+    assert result.edge_feather_px == 4
+    assert result.edge_low_threshold == 20
+    assert result.edge_high_threshold == 100
+    assert result.thermal_colormap == "turbo"
+    assert result.noise_strength == 0.7
+    assert result.outline_thickness == 5
+    assert result.outline_color_bgr == (255, 255, 0)

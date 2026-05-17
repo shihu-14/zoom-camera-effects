@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+import subprocess
+import sys
+from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
 
 import cv2
 
-from .control import EffectControlReader, default_control_file
+from .control import EffectControlReader, default_control_file, write_effect_config
 from .detection import DetectionConfig
 from .effects import EffectConfig
 from .hand_tracker import HandPointDetector
@@ -30,6 +32,7 @@ class AppConfig:
     detection: DetectionConfig = DetectionConfig()
     effect: EffectConfig = EffectConfig()
     control_file: Path | None = default_control_file()
+    ui: bool = True
     min_detection_confidence: float = 0.55
     min_tracking_confidence: float = 0.5
 
@@ -51,7 +54,11 @@ def run_app(config: AppConfig) -> int:
 
     writer: VirtualCameraWriter | None = None
     detector: HandPointDetector | None = None
+    ui_process: subprocess.Popen | None = None
     try:
+        if config.ui and config.control_file is not None:
+            write_effect_config(config.effect, config.control_file)
+            ui_process = _start_control_ui(config.control_file)
         writer = (
             VirtualCameraWriter(actual_width, actual_height, config.fps)
             if config.virtual_camera
@@ -71,6 +78,25 @@ def run_app(config: AppConfig) -> int:
             writer.close()
         if config.preview:
             cv2.destroyAllWindows()
+        if ui_process is not None and ui_process.poll() is None:
+            ui_process.terminate()
+            try:
+                ui_process.wait(timeout=2.0)
+            except subprocess.TimeoutExpired:
+                ui_process.kill()
+
+
+def _start_control_ui(control_file: Path) -> subprocess.Popen:
+    return subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "finger_quad_effect.ui",
+            "--control-file",
+            str(control_file),
+        ],
+        close_fds=True,
+    )
 
 
 def _loop(
@@ -93,15 +119,13 @@ def _loop(
     while True:
         if control_reader is not None:
             try:
-                effect_mode = control_reader.read_effect()
+                effect_config = control_reader.read_config(processor.effect_config)
             except ValueError as exc:
                 print(f"warning: ignoring runtime control command: {exc}")
-                effect_mode = None
-            if effect_mode is not None and effect_mode != processor.effect_config.mode:
-                processor.set_effect_config(
-                    replace(processor.effect_config, mode=effect_mode)
-                )
-                print(f"effect switched: {effect_mode}")
+                effect_config = None
+            if effect_config is not None and effect_config != processor.effect_config:
+                processor.set_effect_config(effect_config)
+                print(f"effect switched: {effect_config.mode}")
 
         ok, frame = capture.read()
         if not ok:

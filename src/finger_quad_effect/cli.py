@@ -15,6 +15,7 @@ from .effects import (
     EFFECT_MODES,
     EffectConfig,
     normalize_effect_mode,
+    parse_color_bgr,
 )
 
 EFFECT_CHOICES = (*EFFECT_MODES, "monochrome")
@@ -72,6 +73,7 @@ def main() -> int:
             outline_color_bgr=outline_color_bgr,
         ),
         control_file=None if args.no_control else args.control_file,
+        ui=args.ui and not args.no_control,
         min_detection_confidence=args.min_detection_confidence,
         min_tracking_confidence=args.min_tracking_confidence,
     )
@@ -122,6 +124,12 @@ def _build_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="mirror the camera image horizontally",
+    )
+    run_group.add_argument(
+        "--ui",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="open the top-left runtime control UI",
     )
     run_group.add_argument("--max-frames", type=int, help="process this many frames and exit")
     parser.add_argument(
@@ -321,30 +329,10 @@ def _format_effect_help() -> str:
 
 
 def _parse_color_bgr(value: str) -> tuple[int, int, int]:
-    colors = {
-        "black": (0, 0, 0),
-        "white": (255, 255, 255),
-        "red": (0, 0, 255),
-        "green": (0, 255, 0),
-        "blue": (255, 0, 0),
-        "cyan": (255, 255, 0),
-        "magenta": (255, 0, 255),
-        "yellow": (0, 255, 255),
-    }
-    normalized = value.strip().lower()
-    if normalized in colors:
-        return colors[normalized]
-
-    hex_value = normalized.removeprefix("#")
-    if len(hex_value) != 6:
-        raise argparse.ArgumentTypeError("color must be #RRGGBB or a basic color name")
     try:
-        red = int(hex_value[0:2], 16)
-        green = int(hex_value[2:4], 16)
-        blue = int(hex_value[4:6], 16)
+        return parse_color_bgr(value)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("color must be #RRGGBB or a basic color name") from exc
-    return (blue, green, red)
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 if __name__ == "__main__":
