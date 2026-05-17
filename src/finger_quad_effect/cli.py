@@ -62,7 +62,6 @@ def main() -> int:
         effect=EffectConfig(
             mode=_normalize_effect_mode(args.effect),
             kernel_size=args.kernel,
-            edge_feather_px=args.feather,
             mosaic_block_size=args.block_size,
             edge_low_threshold=args.threshold_low,
             edge_high_threshold=args.threshold_high,
@@ -165,19 +164,6 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--mosaic-block-size",
         dest="block_size",
-        type=int,
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument(
-        "--feather",
-        dest="feather",
-        type=int,
-        default=default_effect.edge_feather_px,
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument(
-        "--edge-feather",
-        dest="feather",
         type=int,
         help=argparse.SUPPRESS,
     )
@@ -309,7 +295,6 @@ def _format_effect_help() -> str:
             f"  glitch: --strength({default_effect.noise_strength})",
             "  cartoon: no extra option yet",
             "  sketch: no extra option yet",
-            f"  blended effects: --feather({default_effect.edge_feather_px}; polygon boundary blend width in px)",
             "",
             "Examples:",
             "  python3 -m finger_quad_effect",

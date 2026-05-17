@@ -52,7 +52,6 @@ class FrameProcessor:
             frame_bgr,
             detection.points if detection.active else None,
             self._effect_config,
-            plane=detection.plane,
             animation_phase=float(self._frame_index),
         )
         return ProcessedFrame(frame_bgr=processed, detection=detection)

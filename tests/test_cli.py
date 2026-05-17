@@ -73,7 +73,6 @@ def test_no_control_keeps_overlay_ui(monkeypatch):
         "thermal",
         "noise",
         "outline",
-        "particles",
         "neon",
         "glitch",
         "cartoon",
@@ -89,10 +88,10 @@ def test_cli_accepts_added_effect_modes(mode):
 def test_cli_accepts_runtime_effect_command(tmp_path):
     control_file = tmp_path / "effect.txt"
     args = _build_parser().parse_args(
-        ["--set-effect", "particles", "--control-file", str(control_file)]
+        ["--set-effect", "thermal", "--control-file", str(control_file)]
     )
 
-    assert args.set_effect == "particles"
+    assert args.set_effect == "thermal"
     assert args.control_file == control_file
 
 
@@ -105,8 +104,6 @@ def test_cli_accepts_short_effect_parameters():
             "51",
             "--block-size",
             "24",
-            "--feather",
-            "5",
             "--threshold-low",
             "30",
             "--threshold-high",
@@ -124,7 +121,6 @@ def test_cli_accepts_short_effect_parameters():
 
     assert args.kernel == 51
     assert args.block_size == 24
-    assert args.feather == 5
     assert args.threshold_low == 30
     assert args.threshold_high == 90
     assert args.colormap == "turbo"
@@ -135,12 +131,11 @@ def test_cli_accepts_short_effect_parameters():
 
 def test_cli_keeps_legacy_parameter_aliases():
     args = _build_parser().parse_args(
-        ["--blur-kernel", "51", "--mosaic-block-size", "24", "--edge-feather", "5"]
+        ["--blur-kernel", "51", "--mosaic-block-size", "24"]
     )
 
     assert args.kernel == 51
     assert args.block_size == 24
-    assert args.feather == 5
 
 
 def test_removed_effect_list_aliases_are_not_accepted():
@@ -161,13 +156,26 @@ def test_removed_sigma_option_is_not_accepted():
         _build_parser().parse_args(["--sigma", "7"])
 
 
+def test_removed_feather_options_are_not_accepted():
+    with pytest.raises(SystemExit):
+        _build_parser().parse_args(["--feather", "5"])
+
+    with pytest.raises(SystemExit):
+        _build_parser().parse_args(["--edge-feather", "5"])
+
+
+def test_removed_particles_effect_is_not_accepted():
+    with pytest.raises(SystemExit):
+        _build_parser().parse_args(["--effect", "particles"])
+
+
 def test_effect_help_includes_effects_and_parameter_notes():
     output = _format_effect_help()
 
     assert "Effects:" in output
     assert "--blur" in output
     assert "mosaic" in output
-    assert "particles" in output
+    assert "particles" not in output
     assert "neon" in output
     assert "glitch" in output
     assert "cartoon" in output

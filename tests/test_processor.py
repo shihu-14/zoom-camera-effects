@@ -25,7 +25,7 @@ def test_processor_removes_effect_on_first_inactive_frame():
     inactive = DetectionResult(False)
     processor = FrameProcessor(
         SequenceDetector([active, inactive]),
-        EffectConfig(kernel_size=21, edge_feather_px=0),
+        EffectConfig(kernel_size=21),
     )
 
     active_frame = processor.process(frame).frame_bgr
@@ -52,7 +52,7 @@ def test_processor_smooths_active_points_and_resets_on_inactive_frame():
     )
     processor = FrameProcessor(
         SequenceDetector([first, second, inactive, third]),
-        EffectConfig(mode="invert", edge_feather_px=0),
+        EffectConfig(mode="invert"),
         smoothing_factor=0.5,
     )
 
@@ -85,7 +85,7 @@ def test_processor_smooths_3d_points_and_updates_plane():
     )
     processor = FrameProcessor(
         SequenceDetector([first, second]),
-        EffectConfig(mode="invert", edge_feather_px=0),
+        EffectConfig(mode="invert"),
         smoothing_factor=0.5,
     )
 
@@ -105,6 +105,6 @@ def test_processor_smooths_3d_points_and_updates_plane():
 def test_processor_can_switch_effect_config_without_resetting_camera():
     processor = FrameProcessor(SequenceDetector([]), EffectConfig(mode="blur"))
 
-    processor.set_effect_config(EffectConfig(mode="particles"))
+    processor.set_effect_config(EffectConfig(mode="glitch"))
 
-    assert processor.effect_config.mode == "particles"
+    assert processor.effect_config.mode == "glitch"

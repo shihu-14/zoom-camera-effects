@@ -56,9 +56,6 @@ NUMERIC_OPTIONS = {
     "kernel_size": NumericOption(
         "kernel_size", "kernel", 3, 101, 2, integer=True, odd=True
     ),
-    "edge_feather_px": NumericOption(
-        "edge_feather_px", "edge feather", 0, 40, 1, integer=True
-    ),
     "mosaic_block_size": NumericOption(
         "mosaic_block_size", "block", 1, 64, 1, integer=True
     ),
@@ -77,25 +74,23 @@ NUMERIC_OPTIONS = {
 }
 
 EFFECT_OPTIONS: dict[EffectMode, tuple[str, ...]] = {
-    "blur": ("kernel_size", "edge_feather_px"),
-    "mosaic": ("mosaic_block_size", "edge_feather_px"),
-    "invert": ("edge_feather_px",),
-    "grayscale": ("edge_feather_px",),
-    "edge": ("edge_low_threshold", "edge_high_threshold", "edge_feather_px"),
-    "thermal": ("thermal_colormap", "edge_feather_px"),
-    "noise": ("noise_strength", "edge_feather_px"),
+    "blur": ("kernel_size",),
+    "mosaic": ("mosaic_block_size",),
+    "invert": (),
+    "grayscale": (),
+    "edge": ("edge_low_threshold", "edge_high_threshold"),
+    "thermal": ("thermal_colormap",),
+    "noise": ("noise_strength",),
     "outline": ("outline_thickness", "outline_color_bgr"),
-    "particles": (),
     "neon": (
         "edge_low_threshold",
         "edge_high_threshold",
         "noise_strength",
         "outline_color_bgr",
-        "edge_feather_px",
     ),
-    "glitch": ("noise_strength", "edge_feather_px"),
-    "cartoon": ("edge_feather_px",),
-    "sketch": ("edge_feather_px",),
+    "glitch": ("noise_strength",),
+    "cartoon": (),
+    "sketch": (),
 }
 
 
@@ -107,6 +102,7 @@ class OverlayControlUI:
         self._regions: list[HitRegion] = []
         self._config = EffectConfig()
         self._pending_config: EffectConfig | None = None
+        self._dragging_slider: str | None = None
 
     def render(self, frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
         self._config = config
@@ -125,11 +121,17 @@ class OverlayControlUI:
         _flags: int,
         _param: object | None,
     ) -> None:
+        if event == cv2.EVENT_MOUSEMOVE and self._dragging_slider is not None:
+            self._set_slider_value(self._dragging_slider, x)
+            return
+        if event == cv2.EVENT_LBUTTONUP:
+            self._dragging_slider = None
+            return
         if event != cv2.EVENT_LBUTTONDOWN:
             return
         for region in reversed(self._regions):
             if _point_in_rect(x, y, region.rect):
-                self._activate(region)
+                self._activate(region, x)
                 return
 
     def consume_pending_config(
@@ -144,16 +146,16 @@ class OverlayControlUI:
         self._config = pending
         return pending
 
-    def _activate(self, region: HitRegion) -> None:
+    def _activate(self, region: HitRegion, x: int) -> None:
         if region.kind == "gear":
             self.expanded = not self.expanded
             return
         if region.kind == "effect":
             self._set_pending(replace(self._config, mode=region.payload))
             return
-        if region.kind == "numeric":
-            key, direction = region.payload
-            self._set_pending(_adjust_numeric(self._config, key, direction))
+        if region.kind == "slider":
+            self._dragging_slider = region.payload
+            self._set_slider_value(region.payload, x)
             return
         if region.kind == "cycle":
             key, direction = region.payload
@@ -162,6 +164,19 @@ class OverlayControlUI:
     def _set_pending(self, config: EffectConfig) -> None:
         self._config = config
         self._pending_config = config
+
+    def _set_slider_value(self, key: str, x: int) -> None:
+        region = next(
+            (
+                region
+                for region in self._regions
+                if region.kind == "slider" and region.payload == key
+            ),
+            None,
+        )
+        if region is None:
+            return
+        self._set_pending(_set_numeric_from_slider(self._config, key, x, region.rect))
 
     def _draw_gear_button(self, image: np.ndarray) -> None:
         rect = (PANEL_MARGIN, PANEL_MARGIN, GEAR_SIZE, GEAR_SIZE)
@@ -267,12 +282,34 @@ class OverlayControlUI:
         _put_text(
             image,
             value,
-            (rect[0] + 112, rect[1] + 21),
+            (rect[0] + rect[2] - 48, rect[1] + 21),
             0.43,
             (235, 242, 248),
             1,
         )
-        self._draw_step_buttons(image, key, rect)
+        self._draw_slider(image, config, key, rect)
+
+    def _draw_slider(
+        self,
+        image: np.ndarray,
+        config: EffectConfig,
+        key: str,
+        rect: tuple[int, int, int, int],
+    ) -> None:
+        option = NUMERIC_OPTIONS[key]
+        slider_rect = (rect[0] + 112, rect[1] + 8, max(40, rect[2] - 174), 14)
+        self._regions.append(HitRegion("slider", key, slider_rect))
+        value = float(getattr(config, key))
+        ratio = (value - option.minimum) / max(option.maximum - option.minimum, 1e-6)
+        ratio = min(max(ratio, 0.0), 1.0)
+        track_y = slider_rect[1] + slider_rect[3] // 2
+        start = (slider_rect[0], track_y)
+        end = (slider_rect[0] + slider_rect[2], track_y)
+        knob_x = int(round(slider_rect[0] + slider_rect[2] * ratio))
+        cv2.line(image, start, end, (83, 101, 118), 4, cv2.LINE_AA)
+        cv2.line(image, start, (knob_x, track_y), (118, 180, 226), 4, cv2.LINE_AA)
+        cv2.circle(image, (knob_x, track_y), 6, (238, 246, 252), -1, cv2.LINE_AA)
+        cv2.circle(image, (knob_x, track_y), 6, (78, 99, 118), 1, cv2.LINE_AA)
 
     def _draw_cycle_option(
         self,
@@ -327,17 +364,30 @@ class OverlayControlUI:
         _draw_button(image, increase, "+", active=False)
 
 
-def _adjust_numeric(config: EffectConfig, key: str, direction: int) -> EffectConfig:
+def _set_numeric_from_slider(
+    config: EffectConfig,
+    key: str,
+    x: int,
+    rect: tuple[int, int, int, int],
+) -> EffectConfig:
     option = NUMERIC_OPTIONS[key]
-    value = float(getattr(config, key)) + option.step * direction
-    value = min(max(value, option.minimum), option.maximum)
-    if option.integer:
-        value = int(round(value))
+    ratio = (x - rect[0]) / max(rect[2], 1)
+    ratio = min(max(ratio, 0.0), 1.0)
+    value = option.minimum + (option.maximum - option.minimum) * ratio
+    value = (
+        option.minimum
+        + round((value - option.minimum) / option.step) * option.step
+    )
     if option.odd:
         value = int(value)
         if value % 2 == 0:
-            value += 1 if direction >= 0 else -1
+            value += 1
         value = min(max(value, int(option.minimum)), int(option.maximum))
+    elif option.integer:
+        value = int(round(value))
+    else:
+        value = round(value, option.decimals)
+    value = min(max(value, option.minimum), option.maximum)
     return replace(config, **{key: value})
 
 

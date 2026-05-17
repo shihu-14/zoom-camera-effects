@@ -94,15 +94,11 @@ python3 -m finger_quad_effect --effect edge
 python3 -m finger_quad_effect --effect thermal
 python3 -m finger_quad_effect --effect noise
 python3 -m finger_quad_effect --effect outline
-python3 -m finger_quad_effect --effect particles
 python3 -m finger_quad_effect --effect neon
 python3 -m finger_quad_effect --effect glitch
 python3 -m finger_quad_effect --effect cartoon
 python3 -m finger_quad_effect --effect sketch
 ```
-
-The `particles` effect uses MediaPipe's relative landmark depth to estimate the
-fingertip plane equation and emits animated particles from the quadrilateral.
 
 The camera image is mirrored horizontally by default so hand movement matches
 the preview direction. Use `--no-mirror` if you need unmirrored output. The
@@ -111,13 +107,13 @@ Zoom app launcher uses `--no-mirror` because Zoom mirrors your own self-view.
 Switch the effect while the app is running:
 
 ```bash
-python3 -m finger_quad_effect --set-effect particles
 python3 -m finger_quad_effect --set-effect thermal
 python3 -m finger_quad_effect --set-effect blur
 ```
 
 The control UI is the preferred way to switch effects and tune options in real
-time. `--set-effect` remains available for terminal-driven changes.
+time. Numeric options use sliders. `--set-effect` remains available for
+terminal-driven changes.
 
 Tuning options:
 
@@ -131,10 +127,6 @@ python3 -m finger_quad_effect --effect outline --thickness 6 --color "#00ffff"
 python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9
 python3 -m finger_quad_effect --effect glitch --strength 0.7
 ```
-
-`--feather` controls the polygon boundary blend width in pixels. For blur, it
-softens the edge between the blurred area and the original image; it does not
-change the blur strength inside the polygon. Use `--kernel` for blur strength.
 
 For large quadrilaterals and hands spread far apart, the app accepts small
 landmark overshoots, does not require MediaPipe's left/right labels to be

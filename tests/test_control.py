@@ -17,9 +17,9 @@ def test_write_and_read_runtime_effect_command(tmp_path):
 
     assert reader.read_effect() is None
 
-    write_effect_command("particles", control_file)
+    write_effect_command("thermal", control_file)
 
-    assert reader.read_effect() == "particles"
+    assert reader.read_effect() == "thermal"
     assert reader.read_effect() is None
 
 
@@ -43,7 +43,7 @@ def test_write_and_read_runtime_effect_config(tmp_path):
 
 def test_runtime_effect_reader_can_ignore_existing_command(tmp_path):
     control_file = tmp_path / "effect.txt"
-    write_effect_command("particles", control_file)
+    write_effect_command("thermal", control_file)
     reader = EffectControlReader(control_file)
 
     reader.ignore_current()
@@ -66,6 +66,11 @@ def test_runtime_effect_command_rejects_unknown_mode(tmp_path):
         write_effect_command("unknown", tmp_path / "effect.txt")
 
 
+def test_runtime_effect_command_rejects_removed_particles(tmp_path):
+    with pytest.raises(ValueError):
+        write_effect_command("particles", tmp_path / "effect.txt")
+
+
 def test_runtime_effect_config_preserves_existing_options():
     base = EffectConfig(mode="blur", kernel_size=51, noise_strength=0.4)
 
@@ -82,7 +87,6 @@ def test_runtime_effect_config_accepts_ui_aliases():
             "mode": "neon",
             "kernel": 31,
             "block_size": 22,
-            "feather": 4,
             "threshold_low": 20,
             "threshold_high": 100,
             "colormap": "turbo",
@@ -95,7 +99,6 @@ def test_runtime_effect_config_accepts_ui_aliases():
     assert result.mode == "neon"
     assert result.kernel_size == 31
     assert result.mosaic_block_size == 22
-    assert result.edge_feather_px == 4
     assert result.edge_low_threshold == 20
     assert result.edge_high_threshold == 100
     assert result.thermal_colormap == "turbo"
@@ -108,3 +111,9 @@ def test_runtime_effect_config_ignores_sigma():
     result = effect_config_from_mapping({"sigma": 7})
 
     assert not hasattr(result, "sigma")
+
+
+def test_runtime_effect_config_ignores_feather():
+    result = effect_config_from_mapping({"feather": 7})
+
+    assert not hasattr(result, "edge_feather_px")

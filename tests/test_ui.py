@@ -20,11 +20,10 @@ def test_overlay_ui_shows_only_current_effect_options():
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
 
     ui.render(frame, EffectConfig(mode="blur"))
-    payloads = [region.payload for region in ui._regions if region.kind == "numeric"]
+    payloads = [region.payload for region in ui._regions if region.kind == "slider"]
 
-    assert ("kernel_size", 1) in payloads
-    assert ("sigma", 1) not in payloads
-    assert ("mosaic_block_size", 1) not in payloads
+    assert "kernel_size" in payloads
+    assert "mosaic_block_size" not in payloads
 
 
 def test_overlay_ui_gear_collapses_panel():
@@ -60,19 +59,38 @@ def test_overlay_ui_can_switch_effect():
     assert ui.consume_pending_config(current).mode == "edge"
 
 
-def test_overlay_ui_can_adjust_current_option():
+def test_overlay_ui_can_adjust_current_option_with_slider():
     ui = OverlayControlUI()
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     current = EffectConfig(mode="blur", kernel_size=35)
     ui.render(frame, current)
-    increase = next(
+    slider = next(
         region
         for region in ui._regions
-        if region.kind == "numeric" and region.payload == ("kernel_size", 1)
+        if region.kind == "slider" and region.payload == "kernel_size"
     )
-    x = increase.rect[0] + increase.rect[2] // 2
-    y = increase.rect[1] + increase.rect[3] // 2
+    x = slider.rect[0] + slider.rect[2]
+    y = slider.rect[1] + slider.rect[3] // 2
 
     ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, x, y, 0, None)
 
-    assert ui.consume_pending_config(current).kernel_size == 37
+    assert ui.consume_pending_config(current).kernel_size == 101
+
+
+def test_overlay_ui_slider_drag_updates_value():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    current = EffectConfig(mode="noise", noise_strength=0.0)
+    ui.render(frame, current)
+    slider = next(
+        region
+        for region in ui._regions
+        if region.kind == "slider" and region.payload == "noise_strength"
+    )
+    y = slider.rect[1] + slider.rect[3] // 2
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, slider.rect[0], y, 0, None)
+    ui.handle_mouse(cv2.EVENT_MOUSEMOVE, slider.rect[0] + slider.rect[2], y, 0, None)
+    ui.handle_mouse(cv2.EVENT_LBUTTONUP, slider.rect[0] + slider.rect[2], y, 0, None)
+
+    assert ui.consume_pending_config(current).noise_strength == 1.0

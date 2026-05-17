@@ -102,7 +102,6 @@ def effect_config_from_mapping(
     aliases = {
         "kernel": "kernel_size",
         "block_size": "mosaic_block_size",
-        "feather": "edge_feather_px",
         "threshold_low": "edge_low_threshold",
         "threshold_high": "edge_high_threshold",
         "colormap": "thermal_colormap",
@@ -111,7 +110,6 @@ def effect_config_from_mapping(
     }
     int_fields = {
         "kernel_size",
-        "edge_feather_px",
         "mosaic_block_size",
         "outline_thickness",
     }
