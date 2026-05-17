@@ -2,7 +2,7 @@ import pytest
 
 from finger_quad_effect.cli import (
     _build_parser,
-    _format_help_epilog,
+    _format_effect_help,
     _parse_color_bgr,
     main,
 )
@@ -129,11 +129,11 @@ def test_removed_preview_virtual_camera_option_is_not_accepted():
         _build_parser().parse_args(["--preview", "--no-virtual-camera"])
 
 
-def test_help_epilog_includes_effects_and_parameter_notes():
-    output = _format_help_epilog()
+def test_effect_help_includes_effects_and_parameter_notes():
+    output = _format_effect_help()
 
     assert "Effects:" in output
-    assert "blur" in output
+    assert "--blur" in output
     assert "mosaic" in output
     assert "particles" in output
     assert "neon" in output
@@ -144,12 +144,15 @@ def test_help_epilog_includes_effects_and_parameter_notes():
     assert "--threshold-low" in output
 
 
-def test_help_output_does_not_duplicate_effect_sections():
+def test_help_output_places_effects_before_advanced_without_duplicate_sections():
     output = _build_parser().format_help()
 
     assert "\neffects:" not in output
     assert output.count("Effects:") == 1
     assert output.count("Effect option notes:") == 1
+    assert output.index("Effects:") < output.index("advanced:")
+    assert output.index("Effect option notes:") < output.index("advanced:")
+    assert "blur: --kernel(35), --sigma(0.0)" in output
 
 
 def test_parse_color_converts_rgb_hex_to_bgr():

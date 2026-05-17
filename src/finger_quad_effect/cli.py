@@ -88,11 +88,21 @@ class _HelpFormatter(
     pass
 
 
+class _EffectHelpParser(argparse.ArgumentParser):
+    def format_help(self) -> str:
+        help_text = super().format_help()
+        marker = "\nadvanced:\n"
+        if marker not in help_text:
+            return help_text
+        before_advanced, advanced = help_text.split(marker, 1)
+        advanced = advanced.rstrip()
+        return f"{before_advanced.rstrip()}\n\n{_format_effect_help()}\n\nadvanced:\n{advanced}\n"
+
+
 def _build_parser() -> argparse.ArgumentParser:
     default_effect = EffectConfig()
-    parser = argparse.ArgumentParser(
+    parser = _EffectHelpParser(
         description="Apply an effect inside the quadrilateral formed by both thumbs and index fingers.",
-        epilog=_format_help_epilog(),
         formatter_class=_HelpFormatter,
     )
 
@@ -275,43 +285,36 @@ def _normalize_effect_mode(value: str) -> str:
     return normalize_effect_mode(value)
 
 
-def _format_help_epilog() -> str:
+def _format_effect_help() -> str:
     default_effect = EffectConfig()
     effect_choices = ", ".join(EFFECT_CHOICES)
     colormap_choices = ", ".join(COLORMAPS)
     lines = ["Effects:"]
     for mode in EFFECT_MODES:
-        lines.append(f"  {mode:<9} {EFFECT_DESCRIPTIONS[mode]}")
+        lines.append(f"  --{mode:<9} {EFFECT_DESCRIPTIONS[mode]}")
     lines.append("")
     lines.extend(
         (
+            "Effect option notes:",
+            f"  --effect NAME(default: {default_effect.mode}; choices: {effect_choices})",
+            "  --set-effect NAME: switch the effect in a running app and exit",
+            f"  blur: --kernel({default_effect.kernel_size}), --sigma({default_effect.sigma})",
+            f"  mosaic: --block-size({default_effect.mosaic_block_size})",
+            f"  edge: --threshold-low({default_effect.edge_low_threshold}), --threshold-high({default_effect.edge_high_threshold})",
+            f"  thermal: --colormap({default_effect.thermal_colormap}; choices: {colormap_choices})",
+            f"  noise: --strength({default_effect.noise_strength}; 0..1)",
+            f"  outline: --thickness({default_effect.outline_thickness}; auto), --color(#000000)",
+            f"  neon: --threshold-low({default_effect.edge_low_threshold}), --threshold-high({default_effect.edge_high_threshold}), --color(cyan), --strength({default_effect.noise_strength})",
+            f"  glitch: --strength({default_effect.noise_strength})",
+            "  cartoon: no extra option yet",
+            "  sketch: no extra option yet",
+            f"  blended effects: --feather({default_effect.edge_feather_px})",
+            "",
             "Examples:",
             "  python3 -m finger_quad_effect",
             "  python3 -m finger_quad_effect --preview --effect edge",
             "  python3 -m finger_quad_effect --effect blur --kernel 51 --sigma 7",
-            "  python3 -m finger_quad_effect --effect mosaic --block-size 24",
-            "  python3 -m finger_quad_effect --effect thermal --colormap turbo",
-            "  python3 -m finger_quad_effect --effect noise --strength 0.5",
-            '  python3 -m finger_quad_effect --effect outline --thickness 6 --color "#00ffff"',
             "  python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9",
-            "  python3 -m finger_quad_effect --effect glitch --strength 0.7",
-            "  python3 -m finger_quad_effect --effect cartoon",
-            "  python3 -m finger_quad_effect --effect sketch",
-            "",
-            "Effect option notes:",
-            f"  --effect NAME: start with an effect (default: {default_effect.mode}; choices: {effect_choices})",
-            "  --set-effect NAME: switch the effect in a running app and exit",
-            f"  blur: --kernel K (default: {default_effect.kernel_size}), --sigma S (default: {default_effect.sigma})",
-            f"  mosaic: --block-size N (default: {default_effect.mosaic_block_size})",
-            f"  edge: --threshold-low N (default: {default_effect.edge_low_threshold}), --threshold-high N (default: {default_effect.edge_high_threshold})",
-            f"  thermal: --colormap NAME (default: {default_effect.thermal_colormap}; choices: {colormap_choices})",
-            f"  noise: --strength N (default: {default_effect.noise_strength}; range: 0..1)",
-            f"  outline: --thickness PX (default: {default_effect.outline_thickness}; auto), --color COLOR (default: #000000)",
-            f"  neon: --threshold-low N, --threshold-high N, --color COLOR (default: cyan), --strength N (default: {default_effect.noise_strength})",
-            f"  glitch: --strength N (default: {default_effect.noise_strength})",
-            "  cartoon: OpenCV stylization; no extra option yet",
-            "  sketch: OpenCV pencil sketch; no extra option yet",
-            f"  --feather PX: polygon edge feather for blended effects (default: {default_effect.edge_feather_px})",
         )
     )
     return "\n".join(lines)
