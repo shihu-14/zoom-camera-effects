@@ -1,10 +1,9 @@
 # Finger Quad Effect
 
-Real-time webcam filtering that applies a selected effect only inside a
-fingertip quadrilateral. It uses both thumbs and index fingers when available,
-and can infer a usable quadrilateral from one visible thumb and index finger.
-The processed stream can be sent to a virtual camera for use in Zoom, Teams,
-and other video meeting apps.
+Real-time webcam filtering that applies a selected effect only inside the
+quadrilateral formed by both thumbs and index fingers. The processed stream can
+be sent to a virtual camera for use in Zoom, Teams, and other video meeting
+apps.
 
 ## Requirements
 
@@ -70,11 +69,11 @@ python3 -m finger_quad_effect --max-frames 30
 
 ## Gesture Behavior
 
-- The selected effect activates when both hands provide thumb tips and index fingertips.
-- If only one hand is detected, the app infers a small quadrilateral from that hand's thumb tip and index fingertip.
+- The selected effect activates only when exactly two hands provide thumb tips and index fingertips.
 - If no required fingertip is available, the current frame is output unchanged.
 - The fingertip points are sorted geometrically, so swapped hand positions and vertical movement still produce a stable polygon.
-- The quadrilateral has no minimum size gate for four-point detection; two-point fallback expands very small pinches to a usable area.
+- The quadrilateral has no minimum size gate; any four valid fingertip points are accepted.
+- Low or ambiguous MediaPipe handedness scores are tolerated by default, which keeps edge poses with mostly fingers visible more stable.
 - No temporal hold is used; the effect disappears on the next processed frame after detection fails. At 30 FPS this is about 33 ms.
 
 ## Effects
@@ -139,7 +138,7 @@ landmark overshoots, does not require MediaPipe's left/right labels to be
 perfect, and smooths detected points over time. You can tune this behavior:
 
 ```bash
-python3 -m finger_quad_effect --point-bounds-margin 0.12 --smoothing-factor 0.25
+python3 -m finger_quad_effect --point-bounds-margin 0.2 --smoothing-factor 0.25
 python3 -m finger_quad_effect --require-distinct-handedness
 ```
 
