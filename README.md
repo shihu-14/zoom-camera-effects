@@ -83,6 +83,10 @@ python3 -m finger_quad_effect --effect thermal
 python3 -m finger_quad_effect --effect noise
 python3 -m finger_quad_effect --effect outline
 python3 -m finger_quad_effect --effect particles
+python3 -m finger_quad_effect --effect neon
+python3 -m finger_quad_effect --effect glitch
+python3 -m finger_quad_effect --effect cartoon
+python3 -m finger_quad_effect --effect sketch
 ```
 
 The `particles` effect uses MediaPipe's relative landmark depth to estimate the
@@ -109,6 +113,8 @@ python3 -m finger_quad_effect --effect edge --threshold-low 30 --threshold-high 
 python3 -m finger_quad_effect --effect thermal --colormap turbo
 python3 -m finger_quad_effect --effect noise --strength 0.5
 python3 -m finger_quad_effect --effect outline --thickness 6 --color "#00ffff"
+python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9
+python3 -m finger_quad_effect --effect glitch --strength 0.7
 ```
 
 For large quadrilaterals and hands spread far apart, the app accepts small

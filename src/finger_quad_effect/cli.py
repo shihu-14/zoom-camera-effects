@@ -114,98 +114,97 @@ def _build_parser() -> argparse.ArgumentParser:
         help="mirror the camera image horizontally",
     )
     run_group.add_argument("--max-frames", type=int, help="process this many frames and exit")
-    effect_group = parser.add_argument_group("effects")
-    effect_group.add_argument(
+    parser.add_argument(
         "--effect",
         choices=EFFECT_CHOICES,
         default=default_effect.mode,
-        help="effect to apply",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--set-effect",
         choices=EFFECT_CHOICES,
-        help="write a runtime effect switch command and exit",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--kernel",
         dest="kernel",
         type=int,
         default=default_effect.kernel_size,
-        help="Gaussian blur kernel size",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--blur-kernel",
         dest="kernel",
         type=int,
         help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--sigma",
         type=float,
         default=default_effect.sigma,
-        help="Gaussian blur sigma; 0 lets OpenCV infer it from kernel",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--block-size",
         dest="block_size",
         type=int,
         default=default_effect.mosaic_block_size,
-        help="mosaic pixel block size",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--mosaic-block-size",
         dest="block_size",
         type=int,
         help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--feather",
         dest="feather",
         type=int,
         default=default_effect.edge_feather_px,
-        help="polygon edge feather radius in pixels",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--edge-feather",
         dest="feather",
         type=int,
         help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--threshold-low",
         type=float,
         default=default_effect.edge_low_threshold,
-        help="Canny low threshold for edge effect",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--threshold-high",
         type=float,
         default=default_effect.edge_high_threshold,
-        help="Canny high threshold for edge effect",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--colormap",
         choices=tuple(COLORMAPS),
         default=default_effect.thermal_colormap,
-        help="OpenCV colormap for thermal effect",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--strength",
         type=float,
         default=default_effect.noise_strength,
-        help="noise blend strength from 0 to 1",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--thickness",
         type=int,
         default=default_effect.outline_thickness,
-        help="outline thickness in pixels; 0 uses automatic thickness",
+        help=argparse.SUPPRESS,
     )
-    effect_group.add_argument(
+    parser.add_argument(
         "--color",
         default="#000000",
         metavar="COLOR",
-        help="outline color as #RRGGBB or a basic color name",
+        help=argparse.SUPPRESS,
     )
 
     advanced_group = parser.add_argument_group("advanced")
@@ -277,6 +276,9 @@ def _normalize_effect_mode(value: str) -> str:
 
 
 def _format_help_epilog() -> str:
+    default_effect = EffectConfig()
+    effect_choices = ", ".join(EFFECT_CHOICES)
+    colormap_choices = ", ".join(COLORMAPS)
     lines = ["Effects:"]
     for mode in EFFECT_MODES:
         lines.append(f"  {mode:<9} {EFFECT_DESCRIPTIONS[mode]}")
@@ -291,15 +293,25 @@ def _format_help_epilog() -> str:
             "  python3 -m finger_quad_effect --effect thermal --colormap turbo",
             "  python3 -m finger_quad_effect --effect noise --strength 0.5",
             '  python3 -m finger_quad_effect --effect outline --thickness 6 --color "#00ffff"',
+            "  python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9",
+            "  python3 -m finger_quad_effect --effect glitch --strength 0.7",
+            "  python3 -m finger_quad_effect --effect cartoon",
+            "  python3 -m finger_quad_effect --effect sketch",
             "",
             "Effect option notes:",
-            "  blur: --kernel, --sigma",
-            "  mosaic: --block-size",
-            "  edge: --threshold-low, --threshold-high",
-            "  thermal: --colormap",
-            "  noise: --strength",
-            "  outline: --thickness, --color",
-            "  blur/mosaic/invert/grayscale/edge/thermal/noise: --feather",
+            f"  --effect NAME: start with an effect (default: {default_effect.mode}; choices: {effect_choices})",
+            "  --set-effect NAME: switch the effect in a running app and exit",
+            f"  blur: --kernel K (default: {default_effect.kernel_size}), --sigma S (default: {default_effect.sigma})",
+            f"  mosaic: --block-size N (default: {default_effect.mosaic_block_size})",
+            f"  edge: --threshold-low N (default: {default_effect.edge_low_threshold}), --threshold-high N (default: {default_effect.edge_high_threshold})",
+            f"  thermal: --colormap NAME (default: {default_effect.thermal_colormap}; choices: {colormap_choices})",
+            f"  noise: --strength N (default: {default_effect.noise_strength}; range: 0..1)",
+            f"  outline: --thickness PX (default: {default_effect.outline_thickness}; auto), --color COLOR (default: #000000)",
+            f"  neon: --threshold-low N, --threshold-high N, --color COLOR (default: cyan), --strength N (default: {default_effect.noise_strength})",
+            f"  glitch: --strength N (default: {default_effect.noise_strength})",
+            "  cartoon: OpenCV stylization; no extra option yet",
+            "  sketch: OpenCV pencil sketch; no extra option yet",
+            f"  --feather PX: polygon edge feather for blended effects (default: {default_effect.edge_feather_px})",
         )
     )
     return "\n".join(lines)

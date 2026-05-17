@@ -245,6 +245,87 @@ def test_outline_accepts_thickness_and_color():
     assert np.array_equal(output[5, 5], np.array([255, 255, 0], dtype=np.uint8))
 
 
+def test_neon_changes_only_polygon_region():
+    frame = np.zeros((60, 60, 3), dtype=np.uint8)
+    frame[:, 30:] = 255
+    points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
+
+    output = apply_polygon_effect(
+        frame,
+        points,
+        EffectConfig(mode="neon", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[5, 5], frame[5, 5])
+    assert not np.array_equal(output[20:40, 20:40], frame[20:40, 20:40])
+
+
+def test_glitch_changes_only_polygon_region_and_animates():
+    y_indices, x_indices = np.indices((80, 80))
+    frame = np.dstack(
+        [
+            (x_indices * 3).astype(np.uint8),
+            (y_indices * 3).astype(np.uint8),
+            ((x_indices + y_indices) * 2).astype(np.uint8),
+        ]
+    )
+    points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
+
+    first = apply_polygon_effect(
+        frame,
+        points,
+        EffectConfig(mode="glitch", edge_feather_px=0),
+        animation_phase=1.0,
+    )
+    second = apply_polygon_effect(
+        frame,
+        points,
+        EffectConfig(mode="glitch", edge_feather_px=0),
+        animation_phase=10.0,
+    )
+
+    assert np.array_equal(first[5, 5], frame[5, 5])
+    assert not np.array_equal(first[20:60, 20:60], frame[20:60, 20:60])
+    assert not np.array_equal(first, second)
+
+
+def test_cartoon_changes_only_polygon_region():
+    y_indices, x_indices = np.indices((50, 50))
+    frame = np.dstack(
+        [
+            ((x_indices * 5) % 256).astype(np.uint8),
+            ((y_indices * 5) % 256).astype(np.uint8),
+            (((x_indices + y_indices) * 4) % 256).astype(np.uint8),
+        ]
+    )
+    points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
+
+    output = apply_polygon_effect(
+        frame,
+        points,
+        EffectConfig(mode="cartoon", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[5, 5], frame[5, 5])
+    assert not np.array_equal(output[20:40, 20:40], frame[20:40, 20:40])
+
+
+def test_sketch_changes_only_polygon_region():
+    y_indices, x_indices = np.indices((50, 50))
+    checker = ((x_indices + y_indices) % 2 * 255).astype(np.uint8)
+    frame = np.dstack([checker, 255 - checker, checker])
+    points = ((0.2, 0.2), (0.2, 0.8), (0.8, 0.8), (0.8, 0.2))
+
+    output = apply_polygon_effect(
+        frame,
+        points,
+        EffectConfig(mode="sketch", edge_feather_px=0),
+    )
+
+    assert np.array_equal(output[5, 5], frame[5, 5])
+    assert not np.array_equal(output[20:40, 20:40], frame[20:40, 20:40])
+
+
 def test_particles_emit_from_polygon_plane_and_animate():
     frame = np.zeros((80, 80, 3), dtype=np.uint8)
     frame[:, :] = (10, 20, 30)

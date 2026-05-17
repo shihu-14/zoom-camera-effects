@@ -20,6 +20,10 @@ EffectMode = Literal[
     "noise",
     "outline",
     "particles",
+    "neon",
+    "glitch",
+    "cartoon",
+    "sketch",
 ]
 
 EFFECT_MODES: tuple[EffectMode, ...] = (
@@ -32,6 +36,10 @@ EFFECT_MODES: tuple[EffectMode, ...] = (
     "noise",
     "outline",
     "particles",
+    "neon",
+    "glitch",
+    "cartoon",
+    "sketch",
 )
 EFFECT_DESCRIPTIONS: dict[EffectMode, str] = {
     "blur": "Gaussian blur inside the fingertip quadrilateral.",
@@ -43,6 +51,10 @@ EFFECT_DESCRIPTIONS: dict[EffectMode, str] = {
     "noise": "Deterministic color noise inside the fingertip quadrilateral.",
     "outline": "Black outline around the fingertip quadrilateral.",
     "particles": "Animated particles emitted from the fingertip plane.",
+    "neon": "Glowing neon edges inside the fingertip quadrilateral.",
+    "glitch": "RGB channel shift, sliced offsets, and scanlines.",
+    "cartoon": "OpenCV stylization for a softened cartoon look.",
+    "sketch": "OpenCV pencil sketch rendering.",
 }
 EFFECT_ALIASES = {"monochrome": "grayscale"}
 COLORMAPS = {
@@ -122,7 +134,7 @@ def apply_polygon_effect(
     mask = np.zeros((height, width), dtype=np.uint8)
     cv2.fillPoly(mask, [polygon], 255)
 
-    effected = _apply_effect(frame_bgr, config)
+    effected = _apply_effect(frame_bgr, config, animation_phase)
 
     if config.edge_feather_px > 0:
         feather_size = _odd_at_least_three(config.edge_feather_px * 2 + 1)
@@ -137,7 +149,11 @@ def apply_polygon_effect(
     return output
 
 
-def _apply_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
+def _apply_effect(
+    frame_bgr: np.ndarray,
+    config: EffectConfig,
+    animation_phase: float = 0.0,
+) -> np.ndarray:
     if config.mode == "blur":
         kernel_size = _odd_at_least_three(config.kernel_size)
         return cv2.GaussianBlur(
@@ -166,15 +182,7 @@ def _apply_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
         return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
     if config.mode == "edge":
-        gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
-        smoothed = cv2.GaussianBlur(gray, (5, 5), 0)
-        low, high = sorted(
-            (
-                max(0.0, float(config.edge_low_threshold)),
-                max(0.0, float(config.edge_high_threshold)),
-            )
-        )
-        edges = cv2.Canny(smoothed, low, high)
+        edges = _canny_edges(frame_bgr, config)
         return cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
     if config.mode == "thermal":
@@ -196,7 +204,113 @@ def _apply_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
         strength = min(max(float(config.noise_strength), 0.0), 1.0)
         return cv2.addWeighted(frame_bgr, 1.0 - strength, noise, strength, 0)
 
+    if config.mode == "neon":
+        return _apply_neon_effect(frame_bgr, config)
+
+    if config.mode == "glitch":
+        return _apply_glitch_effect(frame_bgr, config, animation_phase)
+
+    if config.mode == "cartoon":
+        return _apply_cartoon_effect(frame_bgr)
+
+    if config.mode == "sketch":
+        return _apply_sketch_effect(frame_bgr)
+
     raise ValueError(f"unsupported effect mode: {config.mode}")
+
+
+def _canny_edges(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
+    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+    smoothed = cv2.GaussianBlur(gray, (5, 5), 0)
+    low, high = sorted(
+        (
+            max(0.0, float(config.edge_low_threshold)),
+            max(0.0, float(config.edge_high_threshold)),
+        )
+    )
+    return cv2.Canny(smoothed, low, high)
+
+
+def _apply_neon_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
+    edges = _canny_edges(frame_bgr, config)
+    glow = cv2.GaussianBlur(edges, (0, 0), 5.0)
+    color = config.outline_color_bgr
+    if color == (0, 0, 0):
+        color = (255, 255, 0)
+    strength = min(max(float(config.noise_strength), 0.0), 1.0)
+    color_layer = np.zeros_like(frame_bgr, dtype=np.float32)
+    for channel, value in enumerate(color):
+        color_layer[:, :, channel] = glow.astype(np.float32) * (value / 255.0)
+    dimmed = frame_bgr.astype(np.float32) * (1.0 - 0.45 * strength)
+    output = dimmed + color_layer * (1.8 * strength)
+    edge_color = np.zeros_like(frame_bgr, dtype=np.uint8)
+    edge_color[edges > 0] = color
+    output = cv2.addWeighted(
+        np.clip(output, 0, 255).astype(np.uint8),
+        1.0,
+        edge_color,
+        strength,
+        0,
+    )
+    return np.clip(output, 0, 255).astype(np.uint8)
+
+
+def _apply_glitch_effect(
+    frame_bgr: np.ndarray,
+    config: EffectConfig,
+    animation_phase: float,
+) -> np.ndarray:
+    height, width = frame_bgr.shape[:2]
+    strength = min(max(float(config.noise_strength), 0.0), 1.0)
+    shift = max(1, int(width * (0.01 + 0.03 * strength)))
+    phase = int(animation_phase)
+    blue, green, red = cv2.split(frame_bgr)
+    red = np.roll(red, shift + phase % max(shift, 1), axis=1)
+    blue = np.roll(blue, -(shift + (phase * 2) % max(shift, 1)), axis=1)
+    output = cv2.merge((blue, green, red))
+
+    block_height = max(2, height // 18)
+    for index, y in enumerate(range(0, height, block_height * 2)):
+        offset = int(np.sin(index * 1.7 + phase * 0.13) * shift * 2)
+        end_y = min(height, y + block_height)
+        output[y:end_y] = np.roll(output[y:end_y], offset, axis=1)
+
+    output[::4] = (output[::4].astype(np.float32) * (0.35 + 0.35 * strength)).astype(np.uint8)
+    return output
+
+
+def _apply_cartoon_effect(frame_bgr: np.ndarray) -> np.ndarray:
+    if hasattr(cv2, "stylization"):
+        return cv2.stylization(frame_bgr, sigma_s=60, sigma_r=0.45)
+
+    color = cv2.bilateralFilter(frame_bgr, 9, 90, 90)
+    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+    edges = cv2.adaptiveThreshold(
+        cv2.medianBlur(gray, 7),
+        255,
+        cv2.ADAPTIVE_THRESH_MEAN_C,
+        cv2.THRESH_BINARY,
+        9,
+        2,
+    )
+    return cv2.bitwise_and(color, color, mask=edges)
+
+
+def _apply_sketch_effect(frame_bgr: np.ndarray) -> np.ndarray:
+    if hasattr(cv2, "pencilSketch"):
+        sketch_gray, _ = cv2.pencilSketch(
+            frame_bgr,
+            sigma_s=60,
+            sigma_r=0.07,
+            shade_factor=0.045,
+        )
+        return cv2.cvtColor(sketch_gray, cv2.COLOR_GRAY2BGR)
+
+    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+    inverted = 255 - gray
+    blurred = cv2.GaussianBlur(inverted, (21, 21), 0)
+    sketch = cv2.divide(gray, 255 - blurred, scale=256)
+    return cv2.cvtColor(sketch, cv2.COLOR_GRAY2BGR)
 
 
 def _apply_particle_effect(

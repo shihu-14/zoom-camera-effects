@@ -36,7 +36,20 @@ def test_preview_disables_virtual_camera(monkeypatch):
     assert captured["config"].virtual_camera is False
 
 
-@pytest.mark.parametrize("mode", ["edge", "thermal", "noise", "outline", "particles"])
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "edge",
+        "thermal",
+        "noise",
+        "outline",
+        "particles",
+        "neon",
+        "glitch",
+        "cartoon",
+        "sketch",
+    ],
+)
 def test_cli_accepts_added_effect_modes(mode):
     args = _build_parser().parse_args(["--effect", mode])
 
@@ -123,8 +136,20 @@ def test_help_epilog_includes_effects_and_parameter_notes():
     assert "blur" in output
     assert "mosaic" in output
     assert "particles" in output
+    assert "neon" in output
+    assert "glitch" in output
+    assert "cartoon" in output
+    assert "sketch" in output
     assert "--kernel" in output
     assert "--threshold-low" in output
+
+
+def test_help_output_does_not_duplicate_effect_sections():
+    output = _build_parser().format_help()
+
+    assert "\neffects:" not in output
+    assert output.count("Effects:") == 1
+    assert output.count("Effect option notes:") == 1
 
 
 def test_parse_color_converts_rgb_hex_to_bgr():
