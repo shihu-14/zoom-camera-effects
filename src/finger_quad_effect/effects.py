@@ -45,14 +45,34 @@ EFFECT_DESCRIPTIONS: dict[EffectMode, str] = {
     "particles": "Animated particles emitted from the fingertip plane.",
 }
 EFFECT_ALIASES = {"monochrome": "grayscale"}
+COLORMAPS = {
+    "jet": cv2.COLORMAP_JET,
+    "turbo": cv2.COLORMAP_TURBO,
+    "inferno": cv2.COLORMAP_INFERNO,
+    "magma": cv2.COLORMAP_MAGMA,
+    "plasma": cv2.COLORMAP_PLASMA,
+    "viridis": cv2.COLORMAP_VIRIDIS,
+    "hot": cv2.COLORMAP_HOT,
+    "cool": cv2.COLORMAP_COOL,
+    "hsv": cv2.COLORMAP_HSV,
+    "ocean": cv2.COLORMAP_OCEAN,
+    "winter": cv2.COLORMAP_WINTER,
+}
 
 
 @dataclass(frozen=True)
 class EffectConfig:
     mode: EffectMode = "blur"
     kernel_size: int = 35
+    sigma: float = 0.0
     edge_feather_px: int = 3
     mosaic_block_size: int = 18
+    edge_low_threshold: float = 60.0
+    edge_high_threshold: float = 140.0
+    thermal_colormap: str = "jet"
+    noise_strength: float = 0.8
+    outline_thickness: int = 0
+    outline_color_bgr: tuple[int, int, int] = (0, 0, 0)
 
 
 def normalize_effect_mode(value: str) -> EffectMode:
@@ -78,8 +98,17 @@ def apply_polygon_effect(
     polygon = normalized_to_pixels(normalized_points, width, height)
     if config.mode == "outline":
         output = frame_bgr.copy()
-        thickness = max(2, min(width, height) // 160)
-        cv2.polylines(output, [polygon], True, (0, 0, 0), thickness, cv2.LINE_8)
+        thickness = config.outline_thickness
+        if thickness <= 0:
+            thickness = max(2, min(width, height) // 160)
+        cv2.polylines(
+            output,
+            [polygon],
+            True,
+            config.outline_color_bgr,
+            thickness,
+            cv2.LINE_8,
+        )
         return output
 
     if config.mode == "particles":
@@ -111,7 +140,11 @@ def apply_polygon_effect(
 def _apply_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
     if config.mode == "blur":
         kernel_size = _odd_at_least_three(config.kernel_size)
-        return cv2.GaussianBlur(frame_bgr, (kernel_size, kernel_size), 0)
+        return cv2.GaussianBlur(
+            frame_bgr,
+            (kernel_size, kernel_size),
+            max(0.0, float(config.sigma)),
+        )
 
     if config.mode == "mosaic":
         height, width = frame_bgr.shape[:2]
@@ -135,12 +168,19 @@ def _apply_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
     if config.mode == "edge":
         gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
         smoothed = cv2.GaussianBlur(gray, (5, 5), 0)
-        edges = cv2.Canny(smoothed, 60, 140)
+        low, high = sorted(
+            (
+                max(0.0, float(config.edge_low_threshold)),
+                max(0.0, float(config.edge_high_threshold)),
+            )
+        )
+        edges = cv2.Canny(smoothed, low, high)
         return cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
     if config.mode == "thermal":
         gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
-        return cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+        colormap = COLORMAPS.get(config.thermal_colormap, cv2.COLORMAP_JET)
+        return cv2.applyColorMap(gray, colormap)
 
     if config.mode == "noise":
         height, width = frame_bgr.shape[:2]
@@ -153,7 +193,8 @@ def _apply_effect(frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
             ],
             axis=2,
         ).astype(np.uint8)
-        return cv2.addWeighted(frame_bgr, 0.2, noise, 0.8, 0)
+        strength = min(max(float(config.noise_strength), 0.0), 1.0)
+        return cv2.addWeighted(frame_bgr, 1.0 - strength, noise, strength, 0)
 
     raise ValueError(f"unsupported effect mode: {config.mode}")
 

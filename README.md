@@ -28,10 +28,10 @@ python3 scripts/create_macos_app.py
 open "dist/Finger Quad Effect.app"
 ```
 
-Open the preview window without virtual camera output:
+Open the local preview window:
 
 ```bash
-python3 -m finger_quad_effect --preview --no-virtual-camera
+python3 -m finger_quad_effect --preview
 ```
 
 Command-line launch is still available for debugging, but macOS will attribute
@@ -66,11 +66,10 @@ python3 -m finger_quad_effect --max-frames 30
 ## Effects
 
 The default effect is Gaussian blur. Choose another area effect with
-`--effect`. Print the available effects with `--list-effects` or
-`--help-effects`:
+`--effect`. Run `--help` to see every effect, tuning option, and default value:
 
 ```bash
-python3 -m finger_quad_effect --list-effects
+python3 -m finger_quad_effect --help
 ```
 
 ```bash
@@ -104,8 +103,12 @@ python3 -m finger_quad_effect --set-effect blur
 Tuning options:
 
 ```bash
-python3 -m finger_quad_effect --effect blur --blur-kernel 51
-python3 -m finger_quad_effect --effect mosaic --mosaic-block-size 24
+python3 -m finger_quad_effect --effect blur --kernel 51 --sigma 7
+python3 -m finger_quad_effect --effect mosaic --block-size 24
+python3 -m finger_quad_effect --effect edge --threshold-low 30 --threshold-high 90
+python3 -m finger_quad_effect --effect thermal --colormap turbo
+python3 -m finger_quad_effect --effect noise --strength 0.5
+python3 -m finger_quad_effect --effect outline --thickness 6 --color "#00ffff"
 ```
 
 For large quadrilaterals and hands spread far apart, the app accepts small
@@ -124,7 +127,7 @@ python3 -m finger_quad_effect --require-distinct-handedness
 3. Start this app with `open "dist/Finger Quad Effect.app"`.
 4. In the meeting app, select the virtual camera named by the backend.
 
-Use `--preview` to see the local processed feed while sending frames to the virtual camera.
+Use `--preview` to validate the local processed feed without virtual camera output.
 
 ## Troubleshooting
 
@@ -139,7 +142,7 @@ If virtual camera startup fails on macOS, open OBS once, choose
 restart the app. You can still validate gesture tracking locally with:
 
 ```bash
-python3 -m finger_quad_effect --preview --no-virtual-camera
+python3 -m finger_quad_effect --preview
 ```
 
 If camera input fails, grant Camera access to `Finger Quad Effect` in

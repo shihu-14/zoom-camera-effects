@@ -36,7 +36,7 @@ class AppConfig:
 
 def run_app(config: AppConfig) -> int:
     if not config.virtual_camera and not config.preview:
-        raise RuntimeError("enable --preview when --no-virtual-camera is used")
+        raise RuntimeError("enable preview or virtual camera output")
 
     capture = cv2.VideoCapture(config.camera_index)
     if not capture.isOpened():
