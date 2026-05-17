@@ -32,21 +32,6 @@ def test_blur_changes_only_polygon_region():
     assert not np.array_equal(output[40, 40], frame[40, 40])
 
 
-def test_blur_accepts_sigma_parameter():
-    y_indices, x_indices = np.indices((80, 80))
-    checker = ((x_indices + y_indices) % 2 * 255).astype(np.uint8)
-    frame = np.dstack([checker, 255 - checker, checker])
-    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
-
-    output = apply_polygon_effect(
-        frame,
-        points,
-        EffectConfig(kernel_size=21, sigma=5.0, edge_feather_px=0),
-    )
-
-    assert not np.array_equal(output[40, 40], frame[40, 40])
-
-
 def test_mosaic_changes_only_polygon_region():
     y_indices, x_indices = np.indices((80, 80))
     frame = np.dstack(

@@ -29,7 +29,6 @@ def test_write_and_read_runtime_effect_config(tmp_path):
     config = EffectConfig(
         mode="neon",
         kernel_size=51,
-        sigma=7,
         noise_strength=0.9,
         outline_color_bgr=(255, 255, 0),
     )
@@ -103,3 +102,9 @@ def test_runtime_effect_config_accepts_ui_aliases():
     assert result.noise_strength == 0.7
     assert result.outline_thickness == 5
     assert result.outline_color_bgr == (255, 255, 0)
+
+
+def test_runtime_effect_config_ignores_sigma():
+    result = effect_config_from_mapping({"sigma": 7})
+
+    assert not hasattr(result, "sigma")

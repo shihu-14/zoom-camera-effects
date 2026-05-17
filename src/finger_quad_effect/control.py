@@ -116,7 +116,6 @@ def effect_config_from_mapping(
         "outline_thickness",
     }
     float_fields = {
-        "sigma",
         "edge_low_threshold",
         "edge_high_threshold",
         "noise_strength",

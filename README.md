@@ -122,7 +122,7 @@ time. `--set-effect` remains available for terminal-driven changes.
 Tuning options:
 
 ```bash
-python3 -m finger_quad_effect --effect blur --kernel 51 --sigma 7
+python3 -m finger_quad_effect --effect blur --kernel 51
 python3 -m finger_quad_effect --effect mosaic --block-size 24
 python3 -m finger_quad_effect --effect edge --threshold-low 30 --threshold-high 90
 python3 -m finger_quad_effect --effect thermal --colormap turbo
@@ -131,6 +131,10 @@ python3 -m finger_quad_effect --effect outline --thickness 6 --color "#00ffff"
 python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9
 python3 -m finger_quad_effect --effect glitch --strength 0.7
 ```
+
+`--feather` controls the polygon boundary blend width in pixels. For blur, it
+softens the edge between the blurred area and the original image; it does not
+change the blur strength inside the polygon. Use `--kernel` for blur strength.
 
 For large quadrilaterals and hands spread far apart, the app accepts small
 landmark overshoots, does not require MediaPipe's left/right labels to be

@@ -62,7 +62,6 @@ def main() -> int:
         effect=EffectConfig(
             mode=_normalize_effect_mode(args.effect),
             kernel_size=args.kernel,
-            sigma=args.sigma,
             edge_feather_px=args.feather,
             mosaic_block_size=args.block_size,
             edge_low_threshold=args.threshold_low,
@@ -154,12 +153,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "--blur-kernel",
         dest="kernel",
         type=int,
-        help=argparse.SUPPRESS,
-    )
-    parser.add_argument(
-        "--sigma",
-        type=float,
-        default=default_effect.sigma,
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
@@ -306,7 +299,7 @@ def _format_effect_help() -> str:
             "Effect option notes:",
             f"  --effect NAME(default: {default_effect.mode}; choices: {effect_choices})",
             "  --set-effect NAME: switch the effect in a running app and exit",
-            f"  blur: --kernel({default_effect.kernel_size}), --sigma({default_effect.sigma})",
+            f"  blur: --kernel({default_effect.kernel_size})",
             f"  mosaic: --block-size({default_effect.mosaic_block_size})",
             f"  edge: --threshold-low({default_effect.edge_low_threshold}), --threshold-high({default_effect.edge_high_threshold})",
             f"  thermal: --colormap({default_effect.thermal_colormap}; choices: {colormap_choices})",
@@ -316,12 +309,12 @@ def _format_effect_help() -> str:
             f"  glitch: --strength({default_effect.noise_strength})",
             "  cartoon: no extra option yet",
             "  sketch: no extra option yet",
-            f"  blended effects: --feather({default_effect.edge_feather_px})",
+            f"  blended effects: --feather({default_effect.edge_feather_px}; polygon boundary blend width in px)",
             "",
             "Examples:",
             "  python3 -m finger_quad_effect",
             "  python3 -m finger_quad_effect --preview --effect edge",
-            "  python3 -m finger_quad_effect --effect blur --kernel 51 --sigma 7",
+            "  python3 -m finger_quad_effect --effect blur --kernel 51",
             "  python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9",
         )
     )

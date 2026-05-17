@@ -23,7 +23,7 @@ def test_overlay_ui_shows_only_current_effect_options():
     payloads = [region.payload for region in ui._regions if region.kind == "numeric"]
 
     assert ("kernel_size", 1) in payloads
-    assert ("sigma", 1) in payloads
+    assert ("sigma", 1) not in payloads
     assert ("mosaic_block_size", 1) not in payloads
 
 

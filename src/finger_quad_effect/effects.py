@@ -86,7 +86,6 @@ COLOR_NAMES_BGR = {
 class EffectConfig:
     mode: EffectMode = "blur"
     kernel_size: int = 35
-    sigma: float = 0.0
     edge_feather_px: int = 3
     mosaic_block_size: int = 18
     edge_low_threshold: float = 60.0
@@ -191,7 +190,7 @@ def _apply_effect(
         return cv2.GaussianBlur(
             frame_bgr,
             (kernel_size, kernel_size),
-            max(0.0, float(config.sigma)),
+            0,
         )
 
     if config.mode == "mosaic":

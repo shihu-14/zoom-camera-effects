@@ -56,9 +56,8 @@ NUMERIC_OPTIONS = {
     "kernel_size": NumericOption(
         "kernel_size", "kernel", 3, 101, 2, integer=True, odd=True
     ),
-    "sigma": NumericOption("sigma", "sigma", 0.0, 20.0, 0.5, decimals=1),
     "edge_feather_px": NumericOption(
-        "edge_feather_px", "feather", 0, 40, 1, integer=True
+        "edge_feather_px", "edge feather", 0, 40, 1, integer=True
     ),
     "mosaic_block_size": NumericOption(
         "mosaic_block_size", "block", 1, 64, 1, integer=True
@@ -78,7 +77,7 @@ NUMERIC_OPTIONS = {
 }
 
 EFFECT_OPTIONS: dict[EffectMode, tuple[str, ...]] = {
-    "blur": ("kernel_size", "sigma", "edge_feather_px"),
+    "blur": ("kernel_size", "edge_feather_px"),
     "mosaic": ("mosaic_block_size", "edge_feather_px"),
     "invert": ("edge_feather_px",),
     "grayscale": ("edge_feather_px",),

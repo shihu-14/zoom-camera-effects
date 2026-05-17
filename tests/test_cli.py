@@ -103,8 +103,6 @@ def test_cli_accepts_short_effect_parameters():
             "thermal",
             "--kernel",
             "51",
-            "--sigma",
-            "7",
             "--block-size",
             "24",
             "--feather",
@@ -125,7 +123,6 @@ def test_cli_accepts_short_effect_parameters():
     )
 
     assert args.kernel == 51
-    assert args.sigma == 7
     assert args.block_size == 24
     assert args.feather == 5
     assert args.threshold_low == 30
@@ -159,6 +156,11 @@ def test_removed_preview_virtual_camera_option_is_not_accepted():
         _build_parser().parse_args(["--preview", "--no-virtual-camera"])
 
 
+def test_removed_sigma_option_is_not_accepted():
+    with pytest.raises(SystemExit):
+        _build_parser().parse_args(["--sigma", "7"])
+
+
 def test_effect_help_includes_effects_and_parameter_notes():
     output = _format_effect_help()
 
@@ -182,7 +184,8 @@ def test_help_output_places_effects_before_advanced_without_duplicate_sections()
     assert output.count("Effect option notes:") == 1
     assert output.index("Effects:") < output.index("advanced:")
     assert output.index("Effect option notes:") < output.index("advanced:")
-    assert "blur: --kernel(35), --sigma(0.0)" in output
+    assert "blur: --kernel(35)" in output
+    assert "--sigma" not in output
 
 
 def test_parse_color_converts_rgb_hex_to_bgr():
