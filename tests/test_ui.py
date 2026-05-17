@@ -69,17 +69,17 @@ def test_overlay_ui_can_switch_effect():
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     current = EffectConfig(mode="blur")
     ui.render(frame, current)
-    next_effect = next(
+    edge = next(
         region
         for region in ui._regions
-        if region.kind == "effect_cycle" and region.payload == 1
+        if region.kind == "effect" and region.payload == "edge"
     )
-    x = next_effect.rect[0] + next_effect.rect[2] // 2
-    y = next_effect.rect[1] + next_effect.rect[3] // 2
+    x = edge.rect[0] + edge.rect[2] // 2
+    y = edge.rect[1] + edge.rect[3] // 2
 
     ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, x, y, 0, None)
 
-    assert ui.consume_pending_config(current).mode == "mosaic"
+    assert ui.consume_pending_config(current).mode == "edge"
 
 
 def test_overlay_ui_can_cycle_current_option():

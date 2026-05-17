@@ -161,18 +161,6 @@ class OverlayControlUI:
         if region.kind == "effect":
             self._set_pending(replace(self._config, mode=region.payload))
             return
-        if region.kind == "effect_cycle":
-            self._set_pending(
-                replace(
-                    self._config,
-                    mode=_cycle_value(
-                        self._config.mode,
-                        EFFECT_MODES,
-                        region.payload,
-                    ),
-                )
-            )
-            return
         if region.kind == "slider":
             self._dragging_slider = region.payload
             self._set_slider_value(region.payload, x)
@@ -211,8 +199,9 @@ class OverlayControlUI:
         x = PANEL_MARGIN
         y = PANEL_MARGIN + GEAR_SIZE + 8
         panel_width = max(280, min(420, width - PANEL_MARGIN * 2))
+        effect_rows = (len(EFFECT_MODES) + 1) // 2
         option_count = max(1, len(EFFECT_OPTIONS[config.mode]))
-        panel_height = 52 + 38 + 34 + option_count * 38 + 14
+        panel_height = 48 + effect_rows * 32 + 34 + option_count * 38 + 14
         panel_height = min(panel_height, max(96, height - y - PANEL_MARGIN))
         panel_rect = (x, y, panel_width, panel_height)
         self._panel_rect = panel_rect
@@ -227,8 +216,8 @@ class OverlayControlUI:
 
         cursor_y = y + 28
         _put_text(image, "Effect", (x + 16, cursor_y), 0.48, (236, 243, 248), 1)
-        cursor_y += 12
-        cursor_y = self._draw_effect_selector(
+        cursor_y += 16
+        cursor_y = self._draw_effect_buttons(
             image, config, x + 14, cursor_y, panel_width - 28
         )
         cursor_y += 24
@@ -236,7 +225,7 @@ class OverlayControlUI:
         cursor_y += 12
         self._draw_options(image, config, x + 14, cursor_y, panel_width - 28)
 
-    def _draw_effect_selector(
+    def _draw_effect_buttons(
         self,
         image: np.ndarray,
         config: EffectConfig,
@@ -244,14 +233,21 @@ class OverlayControlUI:
         y: int,
         width: int,
     ) -> int:
-        self._draw_choice_selector(
-            image,
-            value=config.mode,
-            rect=(x, y, width, 30),
-            kind="effect_cycle",
-            key=None,
-        )
-        return y + 38
+        column_gap = 8
+        button_height = 25
+        button_width = (width - column_gap) // 2
+        for index, mode in enumerate(EFFECT_MODES):
+            column = index % 2
+            row = index // 2
+            rect = (
+                x + column * (button_width + column_gap),
+                y + row * 32,
+                button_width,
+                button_height,
+            )
+            self._regions.append(HitRegion("effect", mode, rect))
+            _draw_button(image, rect, mode, active=mode == config.mode)
+        return y + ((len(EFFECT_MODES) + 1) // 2) * 32
 
     def _draw_options(
         self,
@@ -361,7 +357,7 @@ class OverlayControlUI:
         rect: tuple[int, int, int, int],
         *,
         kind: str,
-        key: str | None,
+        key: str,
     ) -> None:
         arrow_size = 28
         left_rect = (rect[0], rect[1], arrow_size, arrow_size)
@@ -372,10 +368,8 @@ class OverlayControlUI:
             max(32, rect[2] - arrow_size * 2 - 12),
             arrow_size,
         )
-        left_payload = -1 if key is None else (key, -1)
-        right_payload = 1 if key is None else (key, 1)
-        self._regions.append(HitRegion(kind, left_payload, left_rect))
-        self._regions.append(HitRegion(kind, right_payload, right_rect))
+        self._regions.append(HitRegion(kind, (key, -1), left_rect))
+        self._regions.append(HitRegion(kind, (key, 1), right_rect))
         _draw_arrow_button(image, left_rect, -1)
         _draw_arrow_button(image, right_rect, 1)
         _draw_value_pill(image, value_rect, value)
@@ -440,6 +434,25 @@ def _color_label(color_bgr: tuple[int, int, int]) -> str:
         if COLOR_NAMES_BGR[name] == color_bgr:
             return name
     return format_color_hex(color_bgr)
+
+
+def _draw_button(
+    image: np.ndarray,
+    rect: tuple[int, int, int, int],
+    text: str,
+    *,
+    active: bool,
+) -> None:
+    fill = (50, 86, 118) if active else (36, 44, 52)
+    border = (114, 176, 224) if active else (82, 96, 110)
+    text_color = (248, 252, 255) if active else (214, 224, 232)
+    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), fill, -1)
+    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), border, 1)
+    text = _fit_text(text, rect[2] - 12, 0.42)
+    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
+    text_x = rect[0] + max(6, (rect[2] - text_size[0]) // 2)
+    text_y = rect[1] + (rect[3] + text_size[1]) // 2
+    _put_text(image, text, (text_x, text_y), 0.42, text_color, 1)
 
 
 def _draw_arrow_button(
