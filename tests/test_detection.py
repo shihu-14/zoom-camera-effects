@@ -30,7 +30,7 @@ def test_detection_requires_two_hands_and_four_visible_points():
     assert result.plane is not None
 
 
-def test_detection_requires_two_hands_and_does_not_infer_from_one_hand():
+def test_detection_falls_back_when_one_hand_is_missing():
     result = build_quad_detection(
         [_hand((0.2, 0.7), (0.2, 0.2), label="Left")],
         DetectionConfig(),
@@ -40,7 +40,7 @@ def test_detection_requires_two_hands_and_does_not_infer_from_one_hand():
     assert result.reason == "requires exactly two hands"
 
 
-def test_detection_accepts_low_handedness_score_by_default():
+def test_detection_falls_back_when_hand_confidence_is_low():
     result = build_quad_detection(
         [
             _hand((0.2, 0.7), (0.2, 0.2), label="Left", score=0.74),
@@ -49,29 +49,17 @@ def test_detection_accepts_low_handedness_score_by_default():
         DetectionConfig(min_hand_score=0.75),
     )
 
-    assert result.active is True
-
-
-def test_detection_rejects_low_handedness_score_when_strict():
-    result = build_quad_detection(
-        [
-            _hand((0.2, 0.7), (0.2, 0.2), label="Left", score=0.74),
-            _hand((0.8, 0.7), (0.8, 0.2), label="Right"),
-        ],
-        DetectionConfig(min_hand_score=0.75, require_distinct_handedness=True),
-    )
-
     assert result.active is False
-    assert result.reason == "handedness confidence too low"
+    assert result.reason == "hand confidence too low"
 
 
 def test_detection_falls_back_when_a_required_point_is_outside_frame():
     result = build_quad_detection(
         [
-            _hand((-0.25, 0.7), (0.2, 0.2), label="Left"),
+            _hand((-0.2, 0.7), (0.2, 0.2), label="Left"),
             _hand((0.8, 0.7), (0.8, 0.2), label="Right"),
         ],
-        DetectionConfig(point_bounds_margin=0.2),
+        DetectionConfig(),
     )
 
     assert result.active is False

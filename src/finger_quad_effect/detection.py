@@ -39,7 +39,7 @@ class RawHand:
 class DetectionConfig:
     min_hand_score: float = 0.55
     min_point_score: float = 0.5
-    point_bounds_margin: float = 0.2
+    point_bounds_margin: float = 0.12
     require_distinct_handedness: bool = False
 
 
@@ -66,8 +66,6 @@ def build_quad_detection(
             return DetectionResult(False, reason="requires handedness labels")
         if labels[0] == labels[1]:
             return DetectionResult(False, reason="requires left and right hands")
-        if any(hand.score < config.min_hand_score for hand in hands):
-            return DetectionResult(False, reason="handedness confidence too low")
 
     raw_points: list[Point] = []
     raw_points_3d: list[Point3D] = []
@@ -110,6 +108,8 @@ def _required_fingertips(
     hand: RawHand,
     config: DetectionConfig,
 ) -> tuple[list[Point], list[Point3D], str | None]:
+    if hand.score < config.min_hand_score:
+        return [], [], "hand confidence too low"
     if len(hand.landmarks) <= INDEX_TIP:
         return [], [], "missing required landmarks"
 

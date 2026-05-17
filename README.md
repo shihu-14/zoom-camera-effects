@@ -73,7 +73,6 @@ python3 -m finger_quad_effect --max-frames 30
 - If no required fingertip is available, the current frame is output unchanged.
 - The fingertip points are sorted geometrically, so swapped hand positions and vertical movement still produce a stable polygon.
 - The quadrilateral has no minimum size gate; any four valid fingertip points are accepted.
-- Low or ambiguous MediaPipe handedness scores are tolerated by default, which keeps edge poses with mostly fingers visible more stable.
 - No temporal hold is used; the effect disappears on the next processed frame after detection fails. At 30 FPS this is about 33 ms.
 
 ## Effects
@@ -138,7 +137,7 @@ landmark overshoots, does not require MediaPipe's left/right labels to be
 perfect, and smooths detected points over time. You can tune this behavior:
 
 ```bash
-python3 -m finger_quad_effect --point-bounds-margin 0.2 --smoothing-factor 0.25
+python3 -m finger_quad_effect --point-bounds-margin 0.12 --smoothing-factor 0.25
 python3 -m finger_quad_effect --require-distinct-handedness
 ```
 

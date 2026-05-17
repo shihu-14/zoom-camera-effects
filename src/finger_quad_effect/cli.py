@@ -247,7 +247,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--min-hand-score",
         type=float,
         default=0.55,
-        help="minimum handedness score when distinct handedness is required",
+        help="minimum detected hand score accepted by the app",
     )
     advanced_group.add_argument(
         "--min-point-score",
@@ -258,7 +258,7 @@ def _build_parser() -> argparse.ArgumentParser:
     advanced_group.add_argument(
         "--point-bounds-margin",
         type=float,
-        default=0.2,
+        default=0.12,
         help="normalized margin allowed around the frame for fingertip points",
     )
     advanced_group.add_argument(
@@ -278,7 +278,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--require-distinct-handedness",
         dest="require_distinct_handedness",
         action="store_true",
-        help="require confident MediaPipe left/right labels for both hands",
+        help="require MediaPipe to label the two hands as different sides",
     )
     advanced_group.add_argument(
         "--allow-ambiguous-handedness",
