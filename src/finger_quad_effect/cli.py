@@ -73,7 +73,7 @@ def main() -> int:
             outline_color_bgr=outline_color_bgr,
         ),
         control_file=None if args.no_control else args.control_file,
-        ui=args.ui and not args.no_control,
+        ui=args.ui,
         min_detection_confidence=args.min_detection_confidence,
         min_tracking_confidence=args.min_tracking_confidence,
     )
@@ -104,7 +104,10 @@ class _EffectHelpParser(argparse.ArgumentParser):
 def _build_parser() -> argparse.ArgumentParser:
     default_effect = EffectConfig()
     parser = _EffectHelpParser(
-        description="Apply an effect inside the quadrilateral formed by both thumbs and index fingers.",
+        description=(
+            "Apply an effect inside a fingertip quadrilateral from both hands "
+            "or one visible thumb/index pair."
+        ),
         formatter_class=_HelpFormatter,
     )
 
@@ -117,7 +120,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run_group.add_argument(
         "--preview",
         action="store_true",
-        help="open a local preview window without virtual camera output",
+        help="show local preview only without virtual camera output",
     )
     run_group.add_argument(
         "--mirror",
@@ -129,7 +132,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--ui",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="open the top-left runtime control UI",
+        help="show the on-frame runtime control overlay",
     )
     run_group.add_argument("--max-frames", type=int, help="process this many frames and exit")
     parser.add_argument(

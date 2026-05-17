@@ -51,7 +51,7 @@ def test_cli_can_disable_ui(monkeypatch):
     assert captured["config"].ui is False
 
 
-def test_no_control_disables_ui(monkeypatch):
+def test_no_control_keeps_overlay_ui(monkeypatch):
     captured = {}
 
     def fake_run_app(config):
@@ -63,7 +63,7 @@ def test_no_control_disables_ui(monkeypatch):
 
     assert main() == 0
     assert captured["config"].control_file is None
-    assert captured["config"].ui is False
+    assert captured["config"].ui is True
 
 
 @pytest.mark.parametrize(

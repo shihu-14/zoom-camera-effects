@@ -30,14 +30,42 @@ def test_detection_requires_two_hands_and_four_visible_points():
     assert result.plane is not None
 
 
-def test_detection_falls_back_when_one_hand_is_missing():
+def test_detection_infers_quad_when_only_one_hand_is_visible():
     result = build_quad_detection(
         [_hand((0.2, 0.7), (0.2, 0.2), label="Left")],
         DetectionConfig(),
     )
 
+    assert result.active is True
+    assert result.reason == "active: inferred from one hand"
+    assert result.points is not None
+    assert len(result.points) == 4
+    assert result.points_3d is not None
+    assert len(result.points_3d) == 4
+
+
+def test_detection_expands_tiny_one_hand_pinch_to_usable_quad():
+    result = build_quad_detection(
+        [_hand((0.5, 0.5), (0.501, 0.501), label="Left")],
+        DetectionConfig(),
+    )
+
+    assert result.active is True
+    assert result.points is not None
+    xs = [point[0] for point in result.points]
+    ys = [point[1] for point in result.points]
+    assert max(xs) - min(xs) > 0.08
+    assert max(ys) - min(ys) > 0.08
+
+
+def test_detection_does_not_infer_one_hand_quad_when_handedness_is_strict():
+    result = build_quad_detection(
+        [_hand((0.2, 0.7), (0.2, 0.2), label="Left")],
+        DetectionConfig(require_distinct_handedness=True),
+    )
+
     assert result.active is False
-    assert result.points is None
+    assert result.reason == "requires left and right hands"
 
 
 def test_detection_falls_back_when_hand_confidence_is_low():

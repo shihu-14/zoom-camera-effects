@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
 
 import cv2
 
-from .control import EffectControlReader, default_control_file, write_effect_config
+from .control import EffectControlReader, default_control_file
 from .detection import DetectionConfig
 from .effects import EffectConfig
 from .hand_tracker import HandPointDetector
 from .processor import FrameProcessor
+from .ui import OverlayControlUI
 from .virtual_camera import VirtualCameraWriter
+
+DISPLAY_WINDOW_NAME = "Finger Quad Effect"
 
 
 @dataclass(frozen=True)
@@ -38,8 +39,8 @@ class AppConfig:
 
 
 def run_app(config: AppConfig) -> int:
-    if not config.virtual_camera and not config.preview:
-        raise RuntimeError("enable preview or virtual camera output")
+    if not config.virtual_camera and not config.preview and not config.ui:
+        raise RuntimeError("enable preview, UI, or virtual camera output")
 
     capture = cv2.VideoCapture(config.camera_index)
     if not capture.isOpened():
@@ -54,11 +55,7 @@ def run_app(config: AppConfig) -> int:
 
     writer: VirtualCameraWriter | None = None
     detector: HandPointDetector | None = None
-    ui_process: subprocess.Popen | None = None
     try:
-        if config.ui and config.control_file is not None:
-            write_effect_config(config.effect, config.control_file)
-            ui_process = _start_control_ui(config.control_file)
         writer = (
             VirtualCameraWriter(actual_width, actual_height, config.fps)
             if config.virtual_camera
@@ -76,27 +73,8 @@ def run_app(config: AppConfig) -> int:
         capture.release()
         if writer is not None:
             writer.close()
-        if config.preview:
+        if config.preview or config.ui:
             cv2.destroyAllWindows()
-        if ui_process is not None and ui_process.poll() is None:
-            ui_process.terminate()
-            try:
-                ui_process.wait(timeout=2.0)
-            except subprocess.TimeoutExpired:
-                ui_process.kill()
-
-
-def _start_control_ui(control_file: Path) -> subprocess.Popen:
-    return subprocess.Popen(
-        [
-            sys.executable,
-            "-m",
-            "finger_quad_effect.ui",
-            "--control-file",
-            str(control_file),
-        ],
-        close_fds=True,
-    )
 
 
 def _loop(
@@ -116,6 +94,14 @@ def _loop(
     if control_reader is not None:
         control_reader.ignore_current()
 
+    overlay_ui = OverlayControlUI() if config.ui else None
+    show_display = config.preview or overlay_ui is not None
+    if show_display:
+        cv2.namedWindow(DISPLAY_WINDOW_NAME, cv2.WINDOW_NORMAL)
+        cv2.moveWindow(DISPLAY_WINDOW_NAME, 20, 20)
+        if overlay_ui is not None:
+            cv2.setMouseCallback(DISPLAY_WINDOW_NAME, overlay_ui.handle_mouse)
+
     while True:
         if control_reader is not None:
             try:
@@ -126,6 +112,11 @@ def _loop(
             if effect_config is not None and effect_config != processor.effect_config:
                 processor.set_effect_config(effect_config)
                 print(f"effect switched: {effect_config.mode}")
+
+        if overlay_ui is not None:
+            effect_config = overlay_ui.consume_pending_config(processor.effect_config)
+            if effect_config is not None and effect_config != processor.effect_config:
+                processor.set_effect_config(effect_config)
 
         ok, frame = capture.read()
         if not ok:
@@ -140,9 +131,14 @@ def _loop(
         if writer is not None:
             writer.send_bgr(processed)
 
-        if config.preview:
-            cv2.imshow("Finger Quad Effect", processed)
+        if show_display:
+            display = processed
+            if overlay_ui is not None:
+                display = overlay_ui.render(processed, processor.effect_config)
+            cv2.imshow(DISPLAY_WINDOW_NAME, display)
             if cv2.waitKey(1) & 0xFF in (27, ord("q")):
+                return 0
+            if cv2.getWindowProperty(DISPLAY_WINDOW_NAME, cv2.WND_PROP_VISIBLE) < 1:
                 return 0
 
         frames += 1

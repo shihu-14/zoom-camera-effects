@@ -1,6 +1,10 @@
 # Finger Quad Effect
 
-Real-time webcam filtering that applies a selected effect only inside the quadrilateral formed by both thumbs and index fingers. The processed stream can be sent to a virtual camera for use in Zoom, Teams, and other video meeting apps.
+Real-time webcam filtering that applies a selected effect only inside a
+fingertip quadrilateral. It uses both thumbs and index fingers when available,
+and can infer a usable quadrilateral from one visible thumb and index finger.
+The processed stream can be sent to a virtual camera for use in Zoom, Teams,
+and other video meeting apps.
 
 ## Requirements
 
@@ -28,15 +32,16 @@ python3 scripts/create_macos_app.py
 open "dist/Finger Quad Effect.app"
 ```
 
-The runtime control UI opens by default in the top-left of the screen. Use its
-sliders to change effects and tuning values while the app is running. The UI
-window can be minimized from the title bar. Disable it when needed:
+The runtime control UI is drawn on top of the local video window by default.
+Click the gear button in the upper-left corner to expand or collapse it. The
+expanded panel switches effects and shows only the options for the active
+effect. Disable it when needed:
 
 ```bash
 python3 -m finger_quad_effect --no-ui
 ```
 
-Open the local preview window:
+Open the local preview without virtual camera output:
 
 ```bash
 python3 -m finger_quad_effect --preview
@@ -65,10 +70,11 @@ python3 -m finger_quad_effect --max-frames 30
 
 ## Gesture Behavior
 
-- The selected effect activates only when exactly two hands are detected and both thumb tips and index fingertips are visible.
-- If either hand or any required fingertip is lost, the current frame is output unchanged.
-- The four fingertip points are sorted geometrically, so swapped hand positions and vertical movement still produce a stable polygon.
-- The quadrilateral has no minimum size gate; any four valid fingertip points are accepted.
+- The selected effect activates when both hands provide thumb tips and index fingertips.
+- If only one hand is detected, the app infers a small quadrilateral from that hand's thumb tip and index fingertip.
+- If no required fingertip is available, the current frame is output unchanged.
+- The fingertip points are sorted geometrically, so swapped hand positions and vertical movement still produce a stable polygon.
+- The quadrilateral has no minimum size gate for four-point detection; two-point fallback expands very small pinches to a usable area.
 - No temporal hold is used; the effect disappears on the next processed frame after detection fails. At 30 FPS this is about 33 ms.
 
 ## Effects
