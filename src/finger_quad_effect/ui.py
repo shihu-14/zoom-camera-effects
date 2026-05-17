@@ -153,6 +153,18 @@ class OverlayControlUI:
         if region.kind == "effect":
             self._set_pending(replace(self._config, mode=region.payload))
             return
+        if region.kind == "effect_cycle":
+            self._set_pending(
+                replace(
+                    self._config,
+                    mode=_cycle_value(
+                        self._config.mode,
+                        EFFECT_MODES,
+                        region.payload,
+                    ),
+                )
+            )
+            return
         if region.kind == "slider":
             self._dragging_slider = region.payload
             self._set_slider_value(region.payload, x)
@@ -191,9 +203,8 @@ class OverlayControlUI:
         x = PANEL_MARGIN
         y = PANEL_MARGIN + GEAR_SIZE + 8
         panel_width = max(280, min(420, width - PANEL_MARGIN * 2))
-        effect_rows = (len(EFFECT_MODES) + 1) // 2
         option_count = max(1, len(EFFECT_OPTIONS[config.mode]))
-        panel_height = 48 + effect_rows * 32 + 34 + option_count * 38 + 14
+        panel_height = 52 + 38 + 34 + option_count * 38 + 14
         panel_height = min(panel_height, max(96, height - y - PANEL_MARGIN))
         panel_rect = (x, y, panel_width, panel_height)
         _draw_translucent_rect(image, panel_rect, (18, 24, 30), alpha=0.86)
@@ -207,8 +218,8 @@ class OverlayControlUI:
 
         cursor_y = y + 28
         _put_text(image, "Effect", (x + 16, cursor_y), 0.48, (236, 243, 248), 1)
-        cursor_y += 16
-        cursor_y = self._draw_effect_buttons(
+        cursor_y += 12
+        cursor_y = self._draw_effect_selector(
             image, config, x + 14, cursor_y, panel_width - 28
         )
         cursor_y += 24
@@ -216,7 +227,7 @@ class OverlayControlUI:
         cursor_y += 12
         self._draw_options(image, config, x + 14, cursor_y, panel_width - 28)
 
-    def _draw_effect_buttons(
+    def _draw_effect_selector(
         self,
         image: np.ndarray,
         config: EffectConfig,
@@ -224,21 +235,14 @@ class OverlayControlUI:
         y: int,
         width: int,
     ) -> int:
-        column_gap = 8
-        button_height = 25
-        button_width = (width - column_gap) // 2
-        for index, mode in enumerate(EFFECT_MODES):
-            column = index % 2
-            row = index // 2
-            rect = (
-                x + column * (button_width + column_gap),
-                y + row * 32,
-                button_width,
-                button_height,
-            )
-            self._regions.append(HitRegion("effect", mode, rect))
-            _draw_button(image, rect, mode, active=mode == config.mode)
-        return y + ((len(EFFECT_MODES) + 1) // 2) * 32
+        self._draw_choice_selector(
+            image,
+            value=config.mode,
+            rect=(x, y, width, 30),
+            kind="effect_cycle",
+            key=None,
+        )
+        return y + 38
 
     def _draw_options(
         self,
@@ -332,36 +336,40 @@ class OverlayControlUI:
             (215, 224, 232),
             1,
         )
-        _put_text(
+        selector_rect = (rect[0] + 110, rect[1], rect[2] - 110, rect[3])
+        self._draw_choice_selector(
             image,
-            value,
-            (rect[0] + 112, rect[1] + 21),
-            0.43,
-            (235, 242, 248),
-            1,
+            value=value,
+            rect=selector_rect,
+            kind="cycle",
+            key=key,
         )
-        self._draw_step_buttons(image, key, rect, kind="cycle")
 
-    def _draw_step_buttons(
+    def _draw_choice_selector(
         self,
         image: np.ndarray,
-        key: str,
+        value: str,
         rect: tuple[int, int, int, int],
         *,
-        kind: str = "numeric",
+        kind: str,
+        key: str | None,
     ) -> None:
-        button_size = 28
-        decrease = (
-            rect[0] + rect[2] - button_size * 2 - 8,
+        arrow_size = 28
+        left_rect = (rect[0], rect[1], arrow_size, arrow_size)
+        right_rect = (rect[0] + rect[2] - arrow_size, rect[1], arrow_size, arrow_size)
+        value_rect = (
+            rect[0] + arrow_size + 6,
             rect[1],
-            button_size,
-            button_size,
+            max(32, rect[2] - arrow_size * 2 - 12),
+            arrow_size,
         )
-        increase = (rect[0] + rect[2] - button_size, rect[1], button_size, button_size)
-        self._regions.append(HitRegion(kind, (key, -1), decrease))
-        self._regions.append(HitRegion(kind, (key, 1), increase))
-        _draw_button(image, decrease, "-", active=False)
-        _draw_button(image, increase, "+", active=False)
+        left_payload = -1 if key is None else (key, -1)
+        right_payload = 1 if key is None else (key, 1)
+        self._regions.append(HitRegion(kind, left_payload, left_rect))
+        self._regions.append(HitRegion(kind, right_payload, right_rect))
+        _draw_arrow_button(image, left_rect, -1)
+        _draw_arrow_button(image, right_rect, 1)
+        _draw_value_pill(image, value_rect, value)
 
 
 def _set_numeric_from_slider(
@@ -425,22 +433,68 @@ def _color_label(color_bgr: tuple[int, int, int]) -> str:
     return format_color_hex(color_bgr)
 
 
-def _draw_button(
+def _draw_arrow_button(
     image: np.ndarray,
     rect: tuple[int, int, int, int],
-    text: str,
-    *,
-    active: bool,
+    direction: int,
 ) -> None:
-    fill = (50, 86, 118) if active else (36, 44, 52)
-    border = (114, 176, 224) if active else (82, 96, 110)
-    text_color = (248, 252, 255) if active else (214, 224, 232)
+    fill = (36, 44, 52)
+    border = (82, 96, 110)
+    icon = (225, 236, 246)
     cv2.rectangle(image, _rect_start(rect), _rect_end(rect), fill, -1)
     cv2.rectangle(image, _rect_start(rect), _rect_end(rect), border, 1)
-    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
+    center_x = rect[0] + rect[2] // 2
+    center_y = rect[1] + rect[3] // 2
+    if direction < 0:
+        points = np.array(
+            [
+                (center_x - 5, center_y),
+                (center_x + 5, center_y - 8),
+                (center_x + 5, center_y + 8),
+            ],
+            dtype=np.int32,
+        )
+    else:
+        points = np.array(
+            [
+                (center_x + 5, center_y),
+                (center_x - 5, center_y - 8),
+                (center_x - 5, center_y + 8),
+            ],
+            dtype=np.int32,
+        )
+    cv2.fillConvexPoly(image, points, icon, cv2.LINE_AA)
+
+
+def _draw_value_pill(
+    image: np.ndarray,
+    rect: tuple[int, int, int, int],
+    value: str,
+) -> None:
+    fill = (42, 53, 64)
+    border = (92, 111, 128)
+    text_color = (236, 244, 250)
+    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), fill, -1)
+    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), border, 1)
+    text = _fit_text(value, rect[2] - 12, 0.44)
+    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.44, 1)
     text_x = rect[0] + max(6, (rect[2] - text_size[0]) // 2)
     text_y = rect[1] + (rect[3] + text_size[1]) // 2
-    _put_text(image, text, (text_x, text_y), 0.42, text_color, 1)
+    _put_text(image, text, (text_x, text_y), 0.44, text_color, 1)
+
+
+def _fit_text(text: str, max_width: int, scale: float) -> str:
+    if cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, 1)[0][0] <= max_width:
+        return text
+    while len(text) > 3:
+        candidate = text[:-1] + "."
+        if (
+            cv2.getTextSize(candidate, cv2.FONT_HERSHEY_SIMPLEX, scale, 1)[0][0]
+            <= max_width
+        ):
+            return candidate
+        text = text[:-1]
+    return text
 
 
 def _draw_translucent_rect(
