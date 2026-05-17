@@ -92,7 +92,7 @@ def _loop(
         else None
     )
     if control_reader is not None:
-        control_reader.ignore_current()
+        control_reader.reset_current()
 
     overlay_ui = OverlayControlUI() if config.ui else None
     show_display = config.preview or overlay_ui is not None

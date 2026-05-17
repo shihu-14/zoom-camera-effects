@@ -100,6 +100,7 @@ class OverlayControlUI:
     def __init__(self, *, expanded: bool = True) -> None:
         self.expanded = expanded
         self._regions: list[HitRegion] = []
+        self._panel_rect: tuple[int, int, int, int] | None = None
         self._config = EffectConfig()
         self._pending_config: EffectConfig | None = None
         self._dragging_slider: str | None = None
@@ -107,6 +108,7 @@ class OverlayControlUI:
     def render(self, frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
         self._config = config
         self._regions = []
+        self._panel_rect = None
         output = frame_bgr.copy()
         self._draw_gear_button(output)
         if self.expanded:
@@ -133,6 +135,12 @@ class OverlayControlUI:
             if _point_in_rect(x, y, region.rect):
                 self._activate(region, x)
                 return
+        if (
+            self.expanded
+            and self._panel_rect is not None
+            and not _point_in_rect(x, y, self._panel_rect)
+        ):
+            self.expanded = False
 
     def consume_pending_config(
         self,
@@ -207,6 +215,7 @@ class OverlayControlUI:
         panel_height = 52 + 38 + 34 + option_count * 38 + 14
         panel_height = min(panel_height, max(96, height - y - PANEL_MARGIN))
         panel_rect = (x, y, panel_width, panel_height)
+        self._panel_rect = panel_rect
         _draw_translucent_rect(image, panel_rect, (18, 24, 30), alpha=0.86)
         cv2.rectangle(
             image,

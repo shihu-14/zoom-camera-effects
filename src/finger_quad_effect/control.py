@@ -57,6 +57,13 @@ class EffectControlReader:
         except FileNotFoundError:
             self._last_mtime_ns = None
 
+    def reset_current(self) -> None:
+        try:
+            self.path.unlink()
+        except FileNotFoundError:
+            pass
+        self._last_mtime_ns = None
+
     def read_config(self, base_config: EffectConfig | None = None) -> EffectConfig | None:
         try:
             stat_result = self.path.stat()

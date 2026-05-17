@@ -41,6 +41,29 @@ def test_overlay_ui_gear_collapses_panel():
     assert {region.kind for region in ui._regions} == {"gear"}
 
 
+def test_overlay_ui_click_outside_panel_collapses_panel():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    ui.render(frame, EffectConfig())
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, 639, 479, 0, None)
+
+    assert ui.expanded is False
+
+
+def test_overlay_ui_click_inside_panel_keeps_panel_open():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    ui.render(frame, EffectConfig())
+    assert ui._panel_rect is not None
+    x = ui._panel_rect[0] + 8
+    y = ui._panel_rect[1] + 8
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, x, y, 0, None)
+
+    assert ui.expanded is True
+
+
 def test_overlay_ui_can_switch_effect():
     ui = OverlayControlUI()
     frame = np.zeros((480, 640, 3), dtype=np.uint8)

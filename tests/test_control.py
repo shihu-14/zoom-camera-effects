@@ -53,6 +53,22 @@ def test_runtime_effect_reader_can_ignore_existing_command(tmp_path):
     assert reader.read_effect() == "edge"
 
 
+def test_runtime_effect_reader_can_reset_existing_command(tmp_path):
+    control_file = tmp_path / "effect.txt"
+    write_effect_config(
+        EffectConfig(mode="neon", kernel_size=51, noise_strength=0.4),
+        control_file,
+    )
+    reader = EffectControlReader(control_file)
+
+    reader.reset_current()
+
+    assert not control_file.exists()
+    assert reader.read_config() is None
+    write_effect_command("edge", control_file)
+    assert reader.read_effect() == "edge"
+
+
 def test_runtime_effect_command_normalizes_alias(tmp_path):
     control_file = tmp_path / "effect.txt"
 
