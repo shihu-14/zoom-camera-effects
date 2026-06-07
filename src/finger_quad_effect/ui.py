@@ -13,6 +13,7 @@ from .effects import (
     COLOR_NAMES_BGR,
     COLORMAPS,
     EFFECT_MODES,
+    EFFECT_SCOPES,
     EffectConfig,
     EffectMode,
     format_color_hex,
@@ -161,6 +162,9 @@ class OverlayControlUI:
         if region.kind == "effect":
             self._set_pending(replace(self._config, mode=region.payload))
             return
+        if region.kind == "scope":
+            self._set_pending(replace(self._config, scope=region.payload))
+            return
         if region.kind == "slider":
             self._dragging_slider = region.payload
             self._set_slider_value(region.payload, x)
@@ -201,7 +205,7 @@ class OverlayControlUI:
         panel_width = max(280, min(420, width - PANEL_MARGIN * 2))
         effect_rows = (len(EFFECT_MODES) + 1) // 2
         option_count = max(1, len(EFFECT_OPTIONS[config.mode]))
-        panel_height = 48 + effect_rows * 32 + 34 + option_count * 38 + 14
+        panel_height = 48 + effect_rows * 32 + 50 + 34 + option_count * 38 + 14
         panel_height = min(panel_height, max(96, height - y - PANEL_MARGIN))
         panel_rect = (x, y, panel_width, panel_height)
         self._panel_rect = panel_rect
@@ -218,6 +222,12 @@ class OverlayControlUI:
         _put_text(image, "Effect", (x + 16, cursor_y), 0.48, (236, 243, 248), 1)
         cursor_y += 16
         cursor_y = self._draw_effect_buttons(
+            image, config, x + 14, cursor_y, panel_width - 28
+        )
+        cursor_y += 24
+        _put_text(image, "Scope", (x + 16, cursor_y), 0.48, (236, 243, 248), 1)
+        cursor_y += 12
+        cursor_y = self._draw_scope_buttons(
             image, config, x + 14, cursor_y, panel_width - 28
         )
         cursor_y += 24
@@ -248,6 +258,28 @@ class OverlayControlUI:
             self._regions.append(HitRegion("effect", mode, rect))
             _draw_button(image, rect, mode, active=mode == config.mode)
         return y + ((len(EFFECT_MODES) + 1) // 2) * 32
+
+    def _draw_scope_buttons(
+        self,
+        image: np.ndarray,
+        config: EffectConfig,
+        x: int,
+        y: int,
+        width: int,
+    ) -> int:
+        column_gap = 8
+        button_height = 28
+        button_width = (width - column_gap) // 2
+        for index, scope in enumerate(EFFECT_SCOPES):
+            rect = (
+                x + index * (button_width + column_gap),
+                y,
+                button_width,
+                button_height,
+            )
+            self._regions.append(HitRegion("scope", scope, rect))
+            _draw_button(image, rect, scope, active=scope == config.scope)
+        return y + 38
 
     def _draw_options(
         self,

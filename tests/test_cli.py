@@ -12,6 +12,7 @@ def test_cli_defaults_to_blur_and_mirrored_image():
     args = _build_parser().parse_args([])
 
     assert args.effect == "blur"
+    assert args.scope == "finger"
     assert args.mirror is True
 
 
@@ -19,6 +20,26 @@ def test_cli_can_disable_mirror():
     args = _build_parser().parse_args(["--no-mirror"])
 
     assert args.mirror is False
+
+
+def test_cli_accepts_full_effect_scope():
+    args = _build_parser().parse_args(["--scope", "full"])
+
+    assert args.scope == "full"
+
+
+def test_cli_passes_full_effect_scope(monkeypatch):
+    captured = {}
+
+    def fake_run_app(config):
+        captured["config"] = config
+        return 0
+
+    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
+    monkeypatch.setattr("sys.argv", ["finger_quad_effect", "--scope", "full"])
+
+    assert main() == 0
+    assert captured["config"].effect.scope == "full"
 
 
 def test_preview_disables_virtual_camera(monkeypatch):
@@ -193,6 +214,7 @@ def test_help_output_places_effects_before_advanced_without_duplicate_sections()
     assert output.index("Effects:") < output.index("advanced:")
     assert output.index("Effect option notes:") < output.index("advanced:")
     assert "blur: --kernel(35)" in output
+    assert "--scope SCOPE(default: finger; choices: finger, full)" in output
     assert "--sigma" not in output
 
 

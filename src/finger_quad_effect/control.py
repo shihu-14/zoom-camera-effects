@@ -15,6 +15,7 @@ from .effects import (
     EffectMode,
     format_color_hex,
     normalize_effect_mode,
+    normalize_effect_scope,
     parse_color_bgr,
 )
 
@@ -114,6 +115,7 @@ def effect_config_from_mapping(
         "colormap": "thermal_colormap",
         "strength": "noise_strength",
         "thickness": "outline_thickness",
+        "apply_to": "scope",
     }
     int_fields = {
         "kernel_size",
@@ -138,6 +140,8 @@ def effect_config_from_mapping(
             continue
         if target == "mode":
             values[target] = normalize_effect_mode(str(value))
+        elif target == "scope":
+            values[target] = normalize_effect_scope(str(value))
         elif target == "thermal_colormap":
             colormap = str(value)
             if colormap not in COLORMAPS:

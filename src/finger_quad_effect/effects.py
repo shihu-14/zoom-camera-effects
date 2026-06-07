@@ -24,6 +24,7 @@ EffectMode = Literal[
     "cartoon",
     "sketch",
 ]
+EffectScope = Literal["finger", "full"]
 
 EFFECT_MODES: tuple[EffectMode, ...] = (
     "blur",
@@ -39,16 +40,17 @@ EFFECT_MODES: tuple[EffectMode, ...] = (
     "cartoon",
     "sketch",
 )
+EFFECT_SCOPES: tuple[EffectScope, ...] = ("finger", "full")
 EFFECT_DESCRIPTIONS: dict[EffectMode, str] = {
-    "blur": "Gaussian blur inside the fingertip quadrilateral.",
-    "mosaic": "Pixelated mosaic blocks inside the fingertip quadrilateral.",
-    "invert": "Inverted colors inside the fingertip quadrilateral.",
-    "grayscale": "Monochrome grayscale inside the fingertip quadrilateral.",
-    "edge": "Canny edge detection inside the fingertip quadrilateral.",
-    "thermal": "False-color thermal palette inside the fingertip quadrilateral.",
-    "noise": "Deterministic color noise inside the fingertip quadrilateral.",
-    "outline": "Black outline around the fingertip quadrilateral.",
-    "neon": "Glowing neon edges inside the fingertip quadrilateral.",
+    "blur": "Gaussian blur in the selected area.",
+    "mosaic": "Pixelated mosaic blocks in the selected area.",
+    "invert": "Inverted colors in the selected area.",
+    "grayscale": "Monochrome grayscale in the selected area.",
+    "edge": "Canny edge detection in the selected area.",
+    "thermal": "False-color thermal palette in the selected area.",
+    "noise": "Deterministic color noise in the selected area.",
+    "outline": "Outline around the selected area.",
+    "neon": "Glowing neon edges in the selected area.",
     "glitch": "RGB channel shift, sliced offsets, and scanlines.",
     "cartoon": "OpenCV stylization for a softened cartoon look.",
     "sketch": "OpenCV pencil sketch rendering.",
@@ -82,6 +84,7 @@ COLOR_NAMES_BGR = {
 @dataclass(frozen=True)
 class EffectConfig:
     mode: EffectMode = "blur"
+    scope: EffectScope = "finger"
     kernel_size: int = 35
     mosaic_block_size: int = 18
     edge_low_threshold: float = 60.0
@@ -97,6 +100,12 @@ def normalize_effect_mode(value: str) -> EffectMode:
     if mode not in EFFECT_MODES:
         raise ValueError(f"unsupported effect mode: {value}")
     return cast(EffectMode, mode)
+
+
+def normalize_effect_scope(value: str) -> EffectScope:
+    if value not in EFFECT_SCOPES:
+        raise ValueError(f"unsupported effect scope: {value}")
+    return cast(EffectScope, value)
 
 
 def parse_color_bgr(value: str) -> tuple[int, int, int]:
@@ -128,26 +137,17 @@ def apply_polygon_effect(
     *,
     animation_phase: float = 0.0,
 ) -> np.ndarray:
-    """Apply the selected effect only inside the polygon."""
+    """Apply the selected effect to the configured scope."""
+    if config.scope == "full":
+        return _apply_full_frame_effect(frame_bgr, config, animation_phase)
+
     if normalized_points is None:
         return frame_bgr.copy()
 
     height, width = frame_bgr.shape[:2]
     polygon = normalized_to_pixels(normalized_points, width, height)
     if config.mode == "outline":
-        output = frame_bgr.copy()
-        thickness = config.outline_thickness
-        if thickness <= 0:
-            thickness = max(2, min(width, height) // 160)
-        cv2.polylines(
-            output,
-            [polygon],
-            True,
-            config.outline_color_bgr,
-            thickness,
-            cv2.LINE_8,
-        )
-        return output
+        return _draw_outline(frame_bgr, polygon, config)
 
     mask = np.zeros((height, width), dtype=np.uint8)
     cv2.fillPoly(mask, [polygon], 255)
@@ -160,6 +160,47 @@ def apply_polygon_effect(
         + effected.astype(np.float32) * alpha
     )
     output = np.clip(output, 0, 255).astype(np.uint8)
+    return output
+
+
+def _apply_full_frame_effect(
+    frame_bgr: np.ndarray,
+    config: EffectConfig,
+    animation_phase: float,
+) -> np.ndarray:
+    if config.mode == "outline":
+        height, width = frame_bgr.shape[:2]
+        polygon = np.array(
+            [
+                (0, 0),
+                (0, height - 1),
+                (width - 1, height - 1),
+                (width - 1, 0),
+            ],
+            dtype=np.int32,
+        )
+        return _draw_outline(frame_bgr, polygon, config)
+    return _apply_effect(frame_bgr, config, animation_phase)
+
+
+def _draw_outline(
+    frame_bgr: np.ndarray,
+    polygon: np.ndarray,
+    config: EffectConfig,
+) -> np.ndarray:
+    height, width = frame_bgr.shape[:2]
+    output = frame_bgr.copy()
+    thickness = config.outline_thickness
+    if thickness <= 0:
+        thickness = max(2, min(width, height) // 160)
+    cv2.polylines(
+        output,
+        [polygon],
+        True,
+        config.outline_color_bgr,
+        thickness,
+        cv2.LINE_8,
+    )
     return output
 
 

@@ -16,6 +16,33 @@ def test_inactive_effect_returns_pixel_exact_copy():
     assert output is not frame
 
 
+def test_full_scope_applies_effect_without_polygon():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (10, 20, 30)
+
+    output = apply_polygon_effect(
+        frame,
+        None,
+        EffectConfig(mode="invert", scope="full"),
+    )
+
+    assert np.array_equal(output[10, 10], np.array([245, 235, 225], dtype=np.uint8))
+
+
+def test_full_scope_outline_draws_frame_border():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (80, 120, 160)
+
+    output = apply_polygon_effect(
+        frame,
+        None,
+        EffectConfig(mode="outline", scope="full", outline_thickness=1),
+    )
+
+    assert np.array_equal(output[10, 10], frame[10, 10])
+    assert np.array_equal(output[0, 10], np.array([0, 0, 0], dtype=np.uint8))
+
+
 def test_blur_changes_only_polygon_region():
     y_indices, x_indices = np.indices((80, 80))
     checker = ((x_indices + y_indices) % 2 * 255).astype(np.uint8)

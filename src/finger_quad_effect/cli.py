@@ -13,8 +13,10 @@ from .effects import (
     COLORMAPS,
     EFFECT_DESCRIPTIONS,
     EFFECT_MODES,
+    EFFECT_SCOPES,
     EffectConfig,
     normalize_effect_mode,
+    normalize_effect_scope,
     parse_color_bgr,
 )
 
@@ -61,6 +63,7 @@ def main() -> int:
         ),
         effect=EffectConfig(
             mode=_normalize_effect_mode(args.effect),
+            scope=_normalize_effect_scope(args.scope),
             kernel_size=args.kernel,
             mosaic_block_size=args.block_size,
             edge_low_threshold=args.threshold_low,
@@ -102,7 +105,7 @@ class _EffectHelpParser(argparse.ArgumentParser):
 def _build_parser() -> argparse.ArgumentParser:
     default_effect = EffectConfig()
     parser = _EffectHelpParser(
-        description="Apply an effect inside the quadrilateral formed by both thumbs and index fingers.",
+        description="Apply a camera effect to the finger quadrilateral or full frame.",
         formatter_class=_HelpFormatter,
     )
 
@@ -134,6 +137,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--effect",
         choices=EFFECT_CHOICES,
         default=default_effect.mode,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--scope",
+        choices=EFFECT_SCOPES,
+        default=default_effect.scope,
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
@@ -272,9 +281,14 @@ def _normalize_effect_mode(value: str) -> str:
     return normalize_effect_mode(value)
 
 
+def _normalize_effect_scope(value: str) -> str:
+    return normalize_effect_scope(value)
+
+
 def _format_effect_help() -> str:
     default_effect = EffectConfig()
     effect_choices = ", ".join(EFFECT_CHOICES)
+    scope_choices = ", ".join(EFFECT_SCOPES)
     colormap_choices = ", ".join(COLORMAPS)
     lines = ["Effects:"]
     for mode in EFFECT_MODES:
@@ -284,6 +298,7 @@ def _format_effect_help() -> str:
         (
             "Effect option notes:",
             f"  --effect NAME(default: {default_effect.mode}; choices: {effect_choices})",
+            f"  --scope SCOPE(default: {default_effect.scope}; choices: {scope_choices})",
             "  --set-effect NAME: switch the effect in a running app and exit",
             f"  blur: --kernel({default_effect.kernel_size})",
             f"  mosaic: --block-size({default_effect.mosaic_block_size})",
@@ -299,6 +314,7 @@ def _format_effect_help() -> str:
             "Examples:",
             "  python3 -m finger_quad_effect",
             "  python3 -m finger_quad_effect --preview --effect edge",
+            "  python3 -m finger_quad_effect --effect thermal --scope full",
             "  python3 -m finger_quad_effect --effect blur --kernel 51",
             "  python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9",
         )

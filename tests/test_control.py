@@ -109,10 +109,12 @@ def test_runtime_effect_config_accepts_ui_aliases():
             "strength": 0.7,
             "thickness": 5,
             "outline_color": "#00ffff",
+            "apply_to": "full",
         }
     )
 
     assert result.mode == "neon"
+    assert result.scope == "full"
     assert result.kernel_size == 31
     assert result.mosaic_block_size == 22
     assert result.edge_low_threshold == 20
@@ -121,6 +123,11 @@ def test_runtime_effect_config_accepts_ui_aliases():
     assert result.noise_strength == 0.7
     assert result.outline_thickness == 5
     assert result.outline_color_bgr == (255, 255, 0)
+
+
+def test_runtime_effect_config_rejects_unknown_scope():
+    with pytest.raises(ValueError):
+        effect_config_from_mapping({"scope": "window"})
 
 
 def test_runtime_effect_config_ignores_sigma():

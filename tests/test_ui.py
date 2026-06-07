@@ -82,6 +82,24 @@ def test_overlay_ui_can_switch_effect():
     assert ui.consume_pending_config(current).mode == "edge"
 
 
+def test_overlay_ui_can_switch_scope():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    current = EffectConfig()
+    ui.render(frame, current)
+    full_scope = next(
+        region
+        for region in ui._regions
+        if region.kind == "scope" and region.payload == "full"
+    )
+    x = full_scope.rect[0] + full_scope.rect[2] // 2
+    y = full_scope.rect[1] + full_scope.rect[3] // 2
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, x, y, 0, None)
+
+    assert ui.consume_pending_config(current).scope == "full"
+
+
 def test_overlay_ui_can_cycle_current_option():
     ui = OverlayControlUI()
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
