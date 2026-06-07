@@ -100,6 +100,42 @@ def test_overlay_ui_can_switch_scope():
     assert ui.consume_pending_config(current).scope == "full"
 
 
+def test_overlay_ui_can_toggle_outline_fill_option():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    current = EffectConfig(mode="outline", outline_fill=False)
+    ui.render(frame, current)
+    fill_toggle = next(
+        region
+        for region in ui._regions
+        if region.kind == "cycle" and region.payload == ("outline_fill", 1)
+    )
+    x = fill_toggle.rect[0] + fill_toggle.rect[2] // 2
+    y = fill_toggle.rect[1] + fill_toggle.rect[3] // 2
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, x, y, 0, None)
+
+    assert ui.consume_pending_config(current).outline_fill is True
+
+
+def test_overlay_ui_can_cycle_outline_fill_color():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    current = EffectConfig(mode="outline", outline_fill_color_bgr=(255, 255, 255))
+    ui.render(frame, current)
+    next_color = next(
+        region
+        for region in ui._regions
+        if region.kind == "cycle" and region.payload == ("outline_fill_color_bgr", 1)
+    )
+    x = next_color.rect[0] + next_color.rect[2] // 2
+    y = next_color.rect[1] + next_color.rect[3] // 2
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, x, y, 0, None)
+
+    assert ui.consume_pending_config(current).outline_fill_color_bgr == (255, 255, 0)
+
+
 def test_overlay_ui_can_drag_partial_area_vertex():
     ui = OverlayControlUI()
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -180,6 +216,29 @@ def test_overlay_ui_limits_partial_area_vertex_count():
     ui.render(frame, EffectConfig(scope="partial", area_points=ten_points))
 
     assert not any(region.kind == "area_add" for region in ui._regions)
+
+
+def test_overlay_ui_hides_partial_area_editor_after_inactivity():
+    now = 0.0
+
+    def fake_now():
+        return now
+
+    ui = OverlayControlUI(now=fake_now)
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    current = EffectConfig(scope="partial")
+
+    ui.render(frame, current)
+    assert any(region.kind == "area_vertex" for region in ui._regions)
+
+    now = 3.1
+    ui.render(frame, current)
+    assert not any(region.kind == "area_vertex" for region in ui._regions)
+    assert not any(region.kind == "area_edge" for region in ui._regions)
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, 320, 240, 0, None)
+    ui.render(frame, current)
+    assert any(region.kind == "area_vertex" for region in ui._regions)
 
 
 def test_overlay_ui_can_cycle_current_option():

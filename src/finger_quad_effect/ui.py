@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass, replace
-from typing import Any
+from time import perf_counter
+from typing import Any, Callable
 
 import cv2
 import numpy as np
@@ -34,6 +35,7 @@ COLOR_CHOICES = (
 COLORMAP_CHOICES = tuple(COLORMAPS)
 PANEL_MARGIN = 12
 GEAR_SIZE = 44
+AREA_EDITOR_TIMEOUT_SECONDS = 3.0
 
 
 @dataclass(frozen=True)
@@ -85,7 +87,12 @@ EFFECT_OPTIONS: dict[EffectMode, tuple[str, ...]] = {
     "edge": ("edge_low_threshold", "edge_high_threshold"),
     "thermal": ("thermal_colormap",),
     "noise": ("noise_strength",),
-    "outline": ("outline_thickness", "outline_color_bgr"),
+    "outline": (
+        "outline_thickness",
+        "outline_color_bgr",
+        "outline_fill",
+        "outline_fill_color_bgr",
+    ),
     "neon": (
         "edge_low_threshold",
         "edge_high_threshold",
@@ -101,23 +108,34 @@ EFFECT_OPTIONS: dict[EffectMode, tuple[str, ...]] = {
 class OverlayControlUI:
     """Small clickable control panel rendered on top of the video frame."""
 
-    def __init__(self, *, expanded: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        expanded: bool = True,
+        now: Callable[[], float] | None = None,
+    ) -> None:
         self.expanded = expanded
+        self._now = now or perf_counter
         self._regions: list[HitRegion] = []
         self._panel_rect: tuple[int, int, int, int] | None = None
         self._config = EffectConfig()
         self._pending_config: EffectConfig | None = None
         self._dragging_slider: str | None = None
         self._dragging_area_vertex: int | None = None
+        self._area_editor_visible = True
+        self._last_area_click_at = self._now()
         self._frame_size = (1, 1)
 
     def render(self, frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
+        previous_scope = self._config.scope
         self._config = config
         self._regions = []
         self._panel_rect = None
         self._frame_size = (frame_bgr.shape[1], frame_bgr.shape[0])
+        if config.scope == "partial" and previous_scope != "partial":
+            self._show_area_editor()
         output = frame_bgr.copy()
-        if config.scope == "partial":
+        if config.scope == "partial" and self._area_editor_should_show():
             self._draw_area_editor(output, config)
         self._draw_gear_button(output)
         if self.expanded:
@@ -132,6 +150,16 @@ class OverlayControlUI:
         _flags: int,
         _param: object | None,
     ) -> None:
+        if (
+            self._config.scope == "partial"
+            and event
+            in {
+                cv2.EVENT_LBUTTONDOWN,
+                cv2.EVENT_RBUTTONDOWN,
+                cv2.EVENT_LBUTTONDBLCLK,
+            }
+        ):
+            self._show_area_editor()
         if event == cv2.EVENT_MOUSEMOVE and self._dragging_slider is not None:
             self._set_slider_value(self._dragging_slider, x)
             return
@@ -190,6 +218,8 @@ class OverlayControlUI:
             self._set_pending(replace(self._config, mode=region.payload))
             return
         if region.kind == "scope":
+            if region.payload == "partial":
+                self._show_area_editor()
             self._set_pending(replace(self._config, scope=region.payload))
             return
         if region.kind == "slider":
@@ -213,6 +243,20 @@ class OverlayControlUI:
     def _set_pending(self, config: EffectConfig) -> None:
         self._config = config
         self._pending_config = config
+
+    def _show_area_editor(self) -> None:
+        self._area_editor_visible = True
+        self._last_area_click_at = self._now()
+
+    def _area_editor_should_show(self) -> bool:
+        if self._dragging_area_vertex is not None:
+            return True
+        if not self._area_editor_visible:
+            return False
+        if self._now() - self._last_area_click_at > AREA_EDITOR_TIMEOUT_SECONDS:
+            self._area_editor_visible = False
+            return False
+        return True
 
     def _set_slider_value(self, key: str, x: int) -> None:
         region = next(
@@ -474,12 +518,8 @@ class OverlayControlUI:
         key: str,
         rect: tuple[int, int, int, int],
     ) -> None:
-        label = "colormap" if key == "thermal_colormap" else "color"
-        value = (
-            config.thermal_colormap
-            if key == "thermal_colormap"
-            else _color_label(config.outline_color_bgr)
-        )
+        label = _cycle_option_label(key)
+        value = _cycle_option_value(config, key)
         _put_text(
             image,
             label,
@@ -602,11 +642,31 @@ def _cycle_option(config: EffectConfig, key: str, direction: int) -> EffectConfi
     if key == "thermal_colormap":
         value = _cycle_value(config.thermal_colormap, COLORMAP_CHOICES, direction)
         return replace(config, thermal_colormap=value)
-    if key == "outline_color_bgr":
-        current = _color_label(config.outline_color_bgr)
+    if key == "outline_fill":
+        return replace(config, outline_fill=not config.outline_fill)
+    if key in {"outline_color_bgr", "outline_fill_color_bgr"}:
+        current = _color_label(getattr(config, key))
         value = _cycle_value(current, COLOR_CHOICES, direction)
-        return replace(config, outline_color_bgr=COLOR_NAMES_BGR[value])
+        return replace(config, **{key: COLOR_NAMES_BGR[value]})
     return config
+
+
+def _cycle_option_label(key: str) -> str:
+    if key == "thermal_colormap":
+        return "colormap"
+    if key == "outline_fill":
+        return "fill"
+    if key == "outline_fill_color_bgr":
+        return "fill color"
+    return "color"
+
+
+def _cycle_option_value(config: EffectConfig, key: str) -> str:
+    if key == "thermal_colormap":
+        return config.thermal_colormap
+    if key == "outline_fill":
+        return "on" if config.outline_fill else "off"
+    return _color_label(getattr(config, key))
 
 
 def _cycle_value(value: str, choices: tuple[str, ...], direction: int) -> str:

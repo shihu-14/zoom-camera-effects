@@ -82,6 +82,31 @@ def test_cli_passes_partial_area(monkeypatch):
     )
 
 
+def test_cli_passes_outline_fill_options(monkeypatch):
+    captured = {}
+
+    def fake_run_app(config):
+        captured["config"] = config
+        return 0
+
+    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "finger_quad_effect",
+            "--effect",
+            "outline",
+            "--fill",
+            "--fill-color",
+            "#202020",
+        ],
+    )
+
+    assert main() == 0
+    assert captured["config"].effect.outline_fill is True
+    assert captured["config"].effect.outline_fill_color_bgr == (32, 32, 32)
+
+
 def test_cli_rejects_too_few_area_points(monkeypatch):
     monkeypatch.setattr(
         "sys.argv",
@@ -188,6 +213,9 @@ def test_cli_accepts_short_effect_parameters():
             "6",
             "--color",
             "#00ffff",
+            "--fill",
+            "--fill-color",
+            "red",
         ]
     )
 
@@ -199,6 +227,8 @@ def test_cli_accepts_short_effect_parameters():
     assert args.strength == 0.4
     assert args.thickness == 6
     assert args.color == "#00ffff"
+    assert args.fill is True
+    assert args.fill_color == "red"
 
 
 def test_cli_keeps_legacy_parameter_aliases():
@@ -268,6 +298,8 @@ def test_help_output_places_effects_before_advanced_without_duplicate_sections()
     assert "blur: --kernel(35)" in output
     assert "--scope SCOPE(default: finger; choices: finger, full, partial)" in output
     assert "--area X,Y ...(default: 0,0 1,0 1,1 0,1; 3..10 points" in output
+    assert "--fill(false)" in output
+    assert "--fill-color(#ffffff)" in output
     assert "--sigma" not in output
 
 

@@ -106,6 +106,8 @@ class EffectConfig:
     noise_strength: float = 0.8
     outline_thickness: int = 0
     outline_color_bgr: tuple[int, int, int] = (0, 0, 0)
+    outline_fill: bool = False
+    outline_fill_color_bgr: tuple[int, int, int] = (255, 255, 255)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "mode", normalize_effect_mode(str(self.mode)))
@@ -251,6 +253,13 @@ def _draw_outline(
 ) -> np.ndarray:
     height, width = frame_bgr.shape[:2]
     output = frame_bgr.copy()
+    if config.outline_fill:
+        cv2.fillPoly(
+            output,
+            [polygon],
+            config.outline_fill_color_bgr,
+            cv2.LINE_AA,
+        )
     thickness = config.outline_thickness
     if thickness <= 0:
         thickness = max(2, min(width, height) // 160)

@@ -43,6 +43,7 @@ def main() -> int:
 
     try:
         outline_color_bgr = _parse_color_bgr(args.color)
+        outline_fill_color_bgr = _parse_color_bgr(args.fill_color)
         area_points = _parse_area_points(args.area)
     except argparse.ArgumentTypeError as exc:
         parser.error(str(exc))
@@ -75,6 +76,8 @@ def main() -> int:
             noise_strength=args.strength,
             outline_thickness=args.thickness,
             outline_color_bgr=outline_color_bgr,
+            outline_fill=args.fill,
+            outline_fill_color_bgr=outline_fill_color_bgr,
         ),
         control_file=None if args.no_control else args.control_file,
         ui=args.ui,
@@ -227,6 +230,18 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="COLOR",
         help=argparse.SUPPRESS,
     )
+    parser.add_argument(
+        "--fill",
+        action=argparse.BooleanOptionalAction,
+        default=default_effect.outline_fill,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--fill-color",
+        default="#ffffff",
+        metavar="COLOR",
+        help=argparse.SUPPRESS,
+    )
 
     advanced_group = parser.add_argument_group("advanced")
     advanced_group.add_argument(
@@ -342,7 +357,8 @@ def _format_effect_help() -> str:
             f"  edge: --threshold-low({default_effect.edge_low_threshold}), --threshold-high({default_effect.edge_high_threshold})",
             f"  thermal: --colormap({default_effect.thermal_colormap}; choices: {colormap_choices})",
             f"  noise: --strength({default_effect.noise_strength}; 0..1)",
-            f"  outline: --thickness({default_effect.outline_thickness}; auto), --color(#000000)",
+            f"  outline: --thickness({default_effect.outline_thickness}; auto), "
+            "--color(#000000), --fill(false), --fill-color(#ffffff)",
             f"  neon: --threshold-low({default_effect.edge_low_threshold}), --threshold-high({default_effect.edge_high_threshold}), --color(cyan), --strength({default_effect.noise_strength})",
             f"  glitch: --strength({default_effect.noise_strength})",
             "  cartoon: no extra option yet",
@@ -354,6 +370,8 @@ def _format_effect_help() -> str:
             "  python3 -m finger_quad_effect --effect thermal --scope full",
             "  python3 -m finger_quad_effect --scope partial "
             "--area 0.1,0.1 0.9,0.1 0.9,0.8 0.1,0.8",
+            "  python3 -m finger_quad_effect --effect outline --fill "
+            "--fill-color '#202020'",
             "  python3 -m finger_quad_effect --effect blur --kernel 51",
             "  python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9",
         )

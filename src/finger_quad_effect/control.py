@@ -36,7 +36,9 @@ def write_effect_config(config: EffectConfig, control_file: Path | None = None) 
     path = control_file or default_control_file()
     payload = asdict(config)
     payload["outline_color"] = format_color_hex(config.outline_color_bgr)
+    payload["fill_color"] = format_color_hex(config.outline_fill_color_bgr)
     payload.pop("outline_color_bgr")
+    payload.pop("outline_fill_color_bgr")
     _write_control_text(path, json.dumps(payload, sort_keys=True) + "\n")
     return path
 
@@ -119,6 +121,8 @@ def effect_config_from_mapping(
         "apply_to": "scope",
         "area": "area_points",
         "points": "area_points",
+        "fill": "outline_fill",
+        "fill_color": "outline_fill_color",
     }
     int_fields = {
         "kernel_size",
@@ -139,6 +143,12 @@ def effect_config_from_mapping(
         if target == "outline_color_bgr":
             values[target] = _coerce_bgr(value)
             continue
+        if target == "outline_fill_color":
+            values["outline_fill_color_bgr"] = parse_color_bgr(str(value))
+            continue
+        if target == "outline_fill_color_bgr":
+            values[target] = _coerce_bgr(value)
+            continue
         if target == "area_points":
             values[target] = normalize_area_points(_coerce_area_points(value))
             continue
@@ -148,6 +158,8 @@ def effect_config_from_mapping(
             values[target] = normalize_effect_mode(str(value))
         elif target == "scope":
             values[target] = normalize_effect_scope(str(value))
+        elif target == "outline_fill":
+            values[target] = _coerce_bool(value)
         elif target == "thermal_colormap":
             colormap = str(value)
             if colormap not in COLORMAPS:
@@ -168,6 +180,19 @@ def _coerce_bgr(value: Any) -> tuple[int, int, int]:
     if not isinstance(value, (list, tuple)) or len(value) != 3:
         raise ValueError("outline_color_bgr must contain three channels")
     return tuple(min(max(int(channel), 0), 255) for channel in value)
+
+
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError("boolean value must be true or false")
 
 
 def _coerce_area_points(value: Any) -> tuple[tuple[float, float], ...]:

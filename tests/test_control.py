@@ -31,6 +31,8 @@ def test_write_and_read_runtime_effect_config(tmp_path):
         kernel_size=51,
         noise_strength=0.9,
         outline_color_bgr=(255, 255, 0),
+        outline_fill=True,
+        outline_fill_color_bgr=(32, 32, 32),
     )
 
     write_effect_config(config, control_file)
@@ -39,6 +41,7 @@ def test_write_and_read_runtime_effect_config(tmp_path):
     assert result == config
     payload = json.loads(control_file.read_text(encoding="utf-8"))
     assert payload["outline_color"] == "#00ffff"
+    assert payload["fill_color"] == "#202020"
 
 
 def test_runtime_effect_reader_can_ignore_existing_command(tmp_path):
@@ -109,6 +112,8 @@ def test_runtime_effect_config_accepts_ui_aliases():
             "strength": 0.7,
             "thickness": 5,
             "outline_color": "#00ffff",
+            "fill": "on",
+            "fill_color": "red",
             "apply_to": "full",
             "area": "0,0 1,0 1,1 0,1",
         }
@@ -125,6 +130,8 @@ def test_runtime_effect_config_accepts_ui_aliases():
     assert result.noise_strength == 0.7
     assert result.outline_thickness == 5
     assert result.outline_color_bgr == (255, 255, 0)
+    assert result.outline_fill is True
+    assert result.outline_fill_color_bgr == (0, 0, 255)
 
 
 def test_runtime_effect_config_rejects_unknown_scope():

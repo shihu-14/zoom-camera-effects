@@ -308,6 +308,28 @@ def test_outline_accepts_thickness_and_color():
     assert np.array_equal(output[5, 5], np.array([255, 255, 0], dtype=np.uint8))
 
 
+def test_outline_fill_colors_polygon_inside():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (80, 120, 160)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_effect(
+        frame,
+        points,
+        EffectConfig(
+            mode="outline",
+            outline_thickness=1,
+            outline_color_bgr=(255, 255, 0),
+            outline_fill=True,
+            outline_fill_color_bgr=(0, 0, 255),
+        ),
+    )
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert np.array_equal(output[10, 10], np.array([0, 0, 255], dtype=np.uint8))
+    assert np.array_equal(output[5, 5], np.array([255, 255, 0], dtype=np.uint8))
+
+
 def test_neon_changes_only_polygon_region():
     frame = np.zeros((60, 60, 3), dtype=np.uint8)
     frame[:, 30:] = 255
