@@ -14,6 +14,7 @@ from .effects import (
     EffectConfig,
     EffectMode,
     format_color_hex,
+    normalize_area_points,
     normalize_effect_mode,
     normalize_effect_scope,
     parse_color_bgr,
@@ -116,6 +117,8 @@ def effect_config_from_mapping(
         "strength": "noise_strength",
         "thickness": "outline_thickness",
         "apply_to": "scope",
+        "area": "area_points",
+        "points": "area_points",
     }
     int_fields = {
         "kernel_size",
@@ -135,6 +138,9 @@ def effect_config_from_mapping(
             continue
         if target == "outline_color_bgr":
             values[target] = _coerce_bgr(value)
+            continue
+        if target == "area_points":
+            values[target] = normalize_area_points(_coerce_area_points(value))
             continue
         if target not in allowed:
             continue
@@ -162,3 +168,26 @@ def _coerce_bgr(value: Any) -> tuple[int, int, int]:
     if not isinstance(value, (list, tuple)) or len(value) != 3:
         raise ValueError("outline_color_bgr must contain three channels")
     return tuple(min(max(int(channel), 0), 255) for channel in value)
+
+
+def _coerce_area_points(value: Any) -> tuple[tuple[float, float], ...]:
+    if isinstance(value, str):
+        return tuple(_parse_area_point_text(part) for part in value.split())
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("area_points must be a list of x,y pairs")
+    return tuple(_coerce_area_point(point) for point in value)
+
+
+def _coerce_area_point(value: Any) -> tuple[float, float]:
+    if isinstance(value, str):
+        return _parse_area_point_text(value)
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        raise ValueError("area point must contain x and y")
+    return (float(value[0]), float(value[1]))
+
+
+def _parse_area_point_text(value: str) -> tuple[float, float]:
+    parts = value.split(",")
+    if len(parts) != 2:
+        raise ValueError("area point must use x,y")
+    return (float(parts[0]), float(parts[1]))

@@ -110,11 +110,13 @@ def test_runtime_effect_config_accepts_ui_aliases():
             "thickness": 5,
             "outline_color": "#00ffff",
             "apply_to": "full",
+            "area": "0,0 1,0 1,1 0,1",
         }
     )
 
     assert result.mode == "neon"
     assert result.scope == "full"
+    assert result.area_points == ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
     assert result.kernel_size == 31
     assert result.mosaic_block_size == 22
     assert result.edge_low_threshold == 20
@@ -128,6 +130,11 @@ def test_runtime_effect_config_accepts_ui_aliases():
 def test_runtime_effect_config_rejects_unknown_scope():
     with pytest.raises(ValueError):
         effect_config_from_mapping({"scope": "window"})
+
+
+def test_runtime_effect_config_rejects_too_few_area_points():
+    with pytest.raises(ValueError):
+        effect_config_from_mapping({"area_points": [[0, 0], [1, 0]]})
 
 
 def test_runtime_effect_config_ignores_sigma():

@@ -13,6 +13,7 @@ def test_cli_defaults_to_blur_and_mirrored_image():
 
     assert args.effect == "blur"
     assert args.scope == "finger"
+    assert args.area == ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
     assert args.mirror is True
 
 
@@ -28,6 +29,15 @@ def test_cli_accepts_full_effect_scope():
     assert args.scope == "full"
 
 
+def test_cli_accepts_partial_effect_scope_and_area():
+    args = _build_parser().parse_args(
+        ["--scope", "partial", "--area", "0,0", "1,0", "1,1", "0,1"]
+    )
+
+    assert args.scope == "partial"
+    assert args.area == [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+
+
 def test_cli_passes_full_effect_scope(monkeypatch):
     captured = {}
 
@@ -40,6 +50,46 @@ def test_cli_passes_full_effect_scope(monkeypatch):
 
     assert main() == 0
     assert captured["config"].effect.scope == "full"
+
+
+def test_cli_passes_partial_area(monkeypatch):
+    captured = {}
+
+    def fake_run_app(config):
+        captured["config"] = config
+        return 0
+
+    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "finger_quad_effect",
+            "--scope",
+            "partial",
+            "--area",
+            "0,0",
+            "1,0",
+            "1,1",
+        ],
+    )
+
+    assert main() == 0
+    assert captured["config"].effect.scope == "partial"
+    assert captured["config"].effect.area_points == (
+        (0.0, 0.0),
+        (1.0, 0.0),
+        (1.0, 1.0),
+    )
+
+
+def test_cli_rejects_too_few_area_points(monkeypatch):
+    monkeypatch.setattr(
+        "sys.argv",
+        ["finger_quad_effect", "--scope", "partial", "--area", "0,0", "1,0"],
+    )
+
+    with pytest.raises(SystemExit):
+        main()
 
 
 def test_preview_disables_virtual_camera(monkeypatch):
@@ -90,6 +140,7 @@ def test_no_control_keeps_overlay_ui(monkeypatch):
 @pytest.mark.parametrize(
     "mode",
     [
+        "none",
         "edge",
         "thermal",
         "noise",
@@ -194,6 +245,7 @@ def test_effect_help_includes_effects_and_parameter_notes():
     output = _format_effect_help()
 
     assert "Effects:" in output
+    assert "--none" in output
     assert "--blur" in output
     assert "mosaic" in output
     assert "particles" not in output
@@ -214,7 +266,8 @@ def test_help_output_places_effects_before_advanced_without_duplicate_sections()
     assert output.index("Effects:") < output.index("advanced:")
     assert output.index("Effect option notes:") < output.index("advanced:")
     assert "blur: --kernel(35)" in output
-    assert "--scope SCOPE(default: finger; choices: finger, full)" in output
+    assert "--scope SCOPE(default: finger; choices: finger, full, partial)" in output
+    assert "--area X,Y ...(default: 0,0 1,0 1,1 0,1; 3..10 points" in output
     assert "--sigma" not in output
 
 

@@ -100,6 +100,88 @@ def test_overlay_ui_can_switch_scope():
     assert ui.consume_pending_config(current).scope == "full"
 
 
+def test_overlay_ui_can_drag_partial_area_vertex():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    current = EffectConfig(scope="partial")
+    ui.render(frame, current)
+    vertex = next(
+        region
+        for region in ui._regions
+        if region.kind == "area_vertex" and region.payload == 2
+    )
+    x = vertex.rect[0] + vertex.rect[2] // 2
+    y = vertex.rect[1] + vertex.rect[3] // 2
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, x, y, 0, None)
+    ui.handle_mouse(cv2.EVENT_MOUSEMOVE, 320, 240, 0, None)
+    ui.handle_mouse(cv2.EVENT_LBUTTONUP, 320, 240, 0, None)
+
+    updated = ui.consume_pending_config(current)
+    assert updated.area_points[2] == (320 / 639, 240 / 479)
+
+
+def test_overlay_ui_can_add_and_delete_partial_area_vertex():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    current = EffectConfig(scope="partial")
+    ui.render(frame, current)
+    add = next(
+        region
+        for region in ui._regions
+        if region.kind == "area_add" and region.payload == 1
+    )
+    add_x = add.rect[0] + add.rect[2] // 2
+    add_y = add.rect[1] + add.rect[3] // 2
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, add_x, add_y, 0, None)
+    added = ui.consume_pending_config(current)
+
+    assert len(added.area_points) == 5
+
+    ui.render(frame, added)
+    delete = next(
+        region
+        for region in ui._regions
+        if region.kind == "area_delete" and region.payload == 2
+    )
+    delete_x = delete.rect[0] + delete.rect[2] // 2
+    delete_y = delete.rect[1] + delete.rect[3] // 2
+
+    ui.handle_mouse(cv2.EVENT_LBUTTONDOWN, delete_x, delete_y, 0, None)
+    deleted = ui.consume_pending_config(added)
+
+    assert len(deleted.area_points) == 4
+
+
+def test_overlay_ui_limits_partial_area_vertex_count():
+    ui = OverlayControlUI()
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    triangle = EffectConfig(
+        scope="partial",
+        area_points=((0.1, 0.1), (0.9, 0.1), (0.1, 0.9)),
+    )
+    ui.render(frame, triangle)
+
+    assert not any(region.kind == "area_delete" for region in ui._regions)
+
+    ten_points = (
+        (0.1, 0.1),
+        (0.3, 0.1),
+        (0.5, 0.1),
+        (0.7, 0.1),
+        (0.9, 0.1),
+        (0.9, 0.5),
+        (0.9, 0.9),
+        (0.5, 0.9),
+        (0.1, 0.9),
+        (0.1, 0.5),
+    )
+    ui.render(frame, EffectConfig(scope="partial", area_points=ten_points))
+
+    assert not any(region.kind == "area_add" for region in ui._regions)
+
+
 def test_overlay_ui_can_cycle_current_option():
     ui = OverlayControlUI()
     frame = np.zeros((480, 640, 3), dtype=np.uint8)

@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Literal, Sequence, cast
 
 import cv2
 import numpy as np
 
-from .geometry import Point, normalized_to_pixels
+from .geometry import Point, normalized_to_pixels, polygon_area
 
 EffectMode = Literal[
+    "none",
     "blur",
     "mosaic",
     "invert",
@@ -24,9 +26,10 @@ EffectMode = Literal[
     "cartoon",
     "sketch",
 ]
-EffectScope = Literal["finger", "full"]
+EffectScope = Literal["finger", "full", "partial"]
 
 EFFECT_MODES: tuple[EffectMode, ...] = (
+    "none",
     "blur",
     "mosaic",
     "invert",
@@ -40,8 +43,17 @@ EFFECT_MODES: tuple[EffectMode, ...] = (
     "cartoon",
     "sketch",
 )
-EFFECT_SCOPES: tuple[EffectScope, ...] = ("finger", "full")
+EFFECT_SCOPES: tuple[EffectScope, ...] = ("finger", "full", "partial")
+MIN_AREA_POINTS = 3
+MAX_AREA_POINTS = 10
+DEFAULT_AREA_POINTS: tuple[Point, ...] = (
+    (0.0, 0.0),
+    (1.0, 0.0),
+    (1.0, 1.0),
+    (0.0, 1.0),
+)
 EFFECT_DESCRIPTIONS: dict[EffectMode, str] = {
+    "none": "No effect.",
     "blur": "Gaussian blur in the selected area.",
     "mosaic": "Pixelated mosaic blocks in the selected area.",
     "invert": "Inverted colors in the selected area.",
@@ -85,6 +97,7 @@ COLOR_NAMES_BGR = {
 class EffectConfig:
     mode: EffectMode = "blur"
     scope: EffectScope = "finger"
+    area_points: tuple[Point, ...] = DEFAULT_AREA_POINTS
     kernel_size: int = 35
     mosaic_block_size: int = 18
     edge_low_threshold: float = 60.0
@@ -93,6 +106,15 @@ class EffectConfig:
     noise_strength: float = 0.8
     outline_thickness: int = 0
     outline_color_bgr: tuple[int, int, int] = (0, 0, 0)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "mode", normalize_effect_mode(str(self.mode)))
+        object.__setattr__(self, "scope", normalize_effect_scope(str(self.scope)))
+        object.__setattr__(
+            self,
+            "area_points",
+            normalize_area_points(self.area_points),
+        )
 
 
 def normalize_effect_mode(value: str) -> EffectMode:
@@ -106,6 +128,25 @@ def normalize_effect_scope(value: str) -> EffectScope:
     if value not in EFFECT_SCOPES:
         raise ValueError(f"unsupported effect scope: {value}")
     return cast(EffectScope, value)
+
+
+def normalize_area_points(points: Sequence[Point]) -> tuple[Point, ...]:
+    try:
+        normalized = tuple((float(x), float(y)) for x, y in points)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("area points must be x,y coordinate pairs") from exc
+
+    if len(normalized) < MIN_AREA_POINTS:
+        raise ValueError("at least three area points are required")
+    if len(normalized) > MAX_AREA_POINTS:
+        raise ValueError("at most ten area points are allowed")
+    if any(not (isfinite(x) and isfinite(y)) for x, y in normalized):
+        raise ValueError("area points must be finite")
+    if any(x < 0.0 or x > 1.0 or y < 0.0 or y > 1.0 for x, y in normalized):
+        raise ValueError("area points must be normalized coordinates from 0 to 1")
+    if polygon_area(normalized) <= 0.0:
+        raise ValueError("area points must form a polygon")
+    return normalized
 
 
 def parse_color_bgr(value: str) -> tuple[int, int, int]:
@@ -138,12 +179,32 @@ def apply_polygon_effect(
     animation_phase: float = 0.0,
 ) -> np.ndarray:
     """Apply the selected effect to the configured scope."""
+    if config.mode == "none":
+        return frame_bgr.copy()
+
     if config.scope == "full":
         return _apply_full_frame_effect(frame_bgr, config, animation_phase)
+
+    if config.scope == "partial":
+        return _apply_area_effect(
+            frame_bgr,
+            config.area_points,
+            config,
+            animation_phase,
+        )
 
     if normalized_points is None:
         return frame_bgr.copy()
 
+    return _apply_area_effect(frame_bgr, normalized_points, config, animation_phase)
+
+
+def _apply_area_effect(
+    frame_bgr: np.ndarray,
+    normalized_points: Sequence[Point],
+    config: EffectConfig,
+    animation_phase: float,
+) -> np.ndarray:
     height, width = frame_bgr.shape[:2]
     polygon = normalized_to_pixels(normalized_points, width, height)
     if config.mode == "outline":

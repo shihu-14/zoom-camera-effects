@@ -16,6 +16,8 @@ from .effects import (
     EFFECT_SCOPES,
     EffectConfig,
     EffectMode,
+    MAX_AREA_POINTS,
+    MIN_AREA_POINTS,
     format_color_hex,
 )
 
@@ -75,6 +77,7 @@ NUMERIC_OPTIONS = {
 }
 
 EFFECT_OPTIONS: dict[EffectMode, tuple[str, ...]] = {
+    "none": (),
     "blur": ("kernel_size",),
     "mosaic": ("mosaic_block_size",),
     "invert": (),
@@ -105,12 +108,17 @@ class OverlayControlUI:
         self._config = EffectConfig()
         self._pending_config: EffectConfig | None = None
         self._dragging_slider: str | None = None
+        self._dragging_area_vertex: int | None = None
+        self._frame_size = (1, 1)
 
     def render(self, frame_bgr: np.ndarray, config: EffectConfig) -> np.ndarray:
         self._config = config
         self._regions = []
         self._panel_rect = None
+        self._frame_size = (frame_bgr.shape[1], frame_bgr.shape[0])
         output = frame_bgr.copy()
+        if config.scope == "partial":
+            self._draw_area_editor(output, config)
         self._draw_gear_button(output)
         if self.expanded:
             self._draw_panel(output, config)
@@ -127,14 +135,33 @@ class OverlayControlUI:
         if event == cv2.EVENT_MOUSEMOVE and self._dragging_slider is not None:
             self._set_slider_value(self._dragging_slider, x)
             return
+        if event == cv2.EVENT_MOUSEMOVE and self._dragging_area_vertex is not None:
+            self._set_area_vertex(self._dragging_area_vertex, x, y)
+            return
         if event == cv2.EVENT_LBUTTONUP:
             self._dragging_slider = None
+            self._dragging_area_vertex = None
+            return
+        if event == cv2.EVENT_RBUTTONDOWN:
+            for region in reversed(self._regions):
+                if _point_in_rect(x, y, region.rect) and region.kind in {
+                    "area_vertex",
+                    "area_delete",
+                }:
+                    self._delete_area_vertex(region.payload)
+                    return
+            return
+        if event == cv2.EVENT_LBUTTONDBLCLK:
+            for region in reversed(self._regions):
+                if _point_in_rect(x, y, region.rect) and region.kind == "area_edge":
+                    self._add_area_vertex(region.payload, x, y)
+                    return
             return
         if event != cv2.EVENT_LBUTTONDOWN:
             return
         for region in reversed(self._regions):
             if _point_in_rect(x, y, region.rect):
-                self._activate(region, x)
+                self._activate(region, x, y)
                 return
         if (
             self.expanded
@@ -155,7 +182,7 @@ class OverlayControlUI:
         self._config = pending
         return pending
 
-    def _activate(self, region: HitRegion, x: int) -> None:
+    def _activate(self, region: HitRegion, x: int, y: int) -> None:
         if region.kind == "gear":
             self.expanded = not self.expanded
             return
@@ -172,6 +199,16 @@ class OverlayControlUI:
         if region.kind == "cycle":
             key, direction = region.payload
             self._set_pending(_cycle_option(self._config, key, direction))
+            return
+        if region.kind == "area_vertex":
+            self._dragging_area_vertex = region.payload
+            self._set_area_vertex(region.payload, x, y)
+            return
+        if region.kind in {"area_edge", "area_add"}:
+            self._add_area_vertex(region.payload, x, y)
+            return
+        if region.kind == "area_delete":
+            self._delete_area_vertex(region.payload)
 
     def _set_pending(self, config: EffectConfig) -> None:
         self._config = config
@@ -189,6 +226,83 @@ class OverlayControlUI:
         if region is None:
             return
         self._set_pending(_set_numeric_from_slider(self._config, key, x, region.rect))
+
+    def _set_area_vertex(self, index: int, x: int, y: int) -> None:
+        points = list(self._config.area_points)
+        if not 0 <= index < len(points):
+            return
+        points[index] = _pixel_to_normalized_point(x, y, self._frame_size)
+        self._set_area_points(tuple(points))
+
+    def _add_area_vertex(self, edge_index: int, x: int, y: int) -> None:
+        points = list(self._config.area_points)
+        if len(points) >= MAX_AREA_POINTS or not 0 <= edge_index < len(points):
+            return
+        points.insert(
+            edge_index + 1,
+            _pixel_to_normalized_point(x, y, self._frame_size),
+        )
+        self._set_area_points(tuple(points))
+
+    def _delete_area_vertex(self, index: int) -> None:
+        points = list(self._config.area_points)
+        if len(points) <= MIN_AREA_POINTS or not 0 <= index < len(points):
+            return
+        points.pop(index)
+        self._set_area_points(tuple(points))
+
+    def _set_area_points(self, points: tuple[tuple[float, float], ...]) -> None:
+        try:
+            config = replace(self._config, area_points=points)
+        except ValueError:
+            return
+        self._set_pending(config)
+
+    def _draw_area_editor(self, image: np.ndarray, config: EffectConfig) -> None:
+        points = _area_points_to_pixels(config.area_points, self._frame_size)
+        if len(points) < MIN_AREA_POINTS:
+            return
+
+        polygon = np.asarray(points, dtype=np.int32).reshape((-1, 1, 2))
+        overlay = image.copy()
+        cv2.fillPoly(overlay, [polygon], (35, 178, 232), cv2.LINE_AA)
+        cv2.addWeighted(overlay, 0.16, image, 0.84, 0, dst=image)
+        cv2.polylines(image, [polygon], True, (30, 214, 255), 3, cv2.LINE_AA)
+        cv2.polylines(image, [polygon], True, (8, 63, 83), 1, cv2.LINE_AA)
+
+        for index, start in enumerate(points):
+            end = points[(index + 1) % len(points)]
+            self._regions.append(
+                HitRegion(
+                    "area_edge",
+                    index,
+                    _line_hit_rect(start, end, self._frame_size),
+                )
+            )
+            if len(points) < MAX_AREA_POINTS:
+                midpoint = ((start[0] + end[0]) // 2, (start[1] + end[1]) // 2)
+                add_rect = _center_rect(midpoint, 18)
+                self._regions.append(HitRegion("area_add", index, add_rect))
+                cv2.circle(image, midpoint, 9, (12, 55, 68), -1, cv2.LINE_AA)
+                cv2.circle(image, midpoint, 9, (50, 224, 255), 2, cv2.LINE_AA)
+                _draw_centered_text(image, "+", add_rect, 0.48, (230, 252, 255), 1)
+
+        for index, point in enumerate(points):
+            vertex_rect = _center_rect(point, 24)
+            self._regions.append(HitRegion("area_vertex", index, vertex_rect))
+            cv2.circle(image, point, 10, (245, 251, 255), -1, cv2.LINE_AA)
+            cv2.circle(image, point, 10, (0, 178, 255), 2, cv2.LINE_AA)
+            cv2.circle(image, point, 4, (8, 63, 83), -1, cv2.LINE_AA)
+            if len(points) > MIN_AREA_POINTS:
+                delete_center = (
+                    min(max(point[0] + 16, 8), self._frame_size[0] - 8),
+                    min(max(point[1] - 16, 8), self._frame_size[1] - 8),
+                )
+                delete_rect = _center_rect(delete_center, 16)
+                self._regions.append(HitRegion("area_delete", index, delete_rect))
+                cv2.circle(image, delete_center, 8, (31, 37, 44), -1, cv2.LINE_AA)
+                cv2.circle(image, delete_center, 8, (96, 128, 145), 1, cv2.LINE_AA)
+                _draw_centered_text(image, "x", delete_rect, 0.36, (255, 215, 215), 1)
 
     def _draw_gear_button(self, image: np.ndarray) -> None:
         rect = (PANEL_MARGIN, PANEL_MARGIN, GEAR_SIZE, GEAR_SIZE)
@@ -269,7 +383,8 @@ class OverlayControlUI:
     ) -> int:
         column_gap = 8
         button_height = 28
-        button_width = (width - column_gap) // 2
+        button_count = len(EFFECT_SCOPES)
+        button_width = (width - column_gap * (button_count - 1)) // button_count
         for index, scope in enumerate(EFFECT_SCOPES):
             rect = (
                 x + index * (button_width + column_gap),
@@ -434,6 +549,55 @@ def _set_numeric_from_slider(
     return replace(config, **{key: value})
 
 
+def _pixel_to_normalized_point(
+    x: int,
+    y: int,
+    frame_size: tuple[int, int],
+) -> tuple[float, float]:
+    width, height = frame_size
+    normalized_x = x / max(width - 1, 1)
+    normalized_y = y / max(height - 1, 1)
+    return (
+        min(max(normalized_x, 0.0), 1.0),
+        min(max(normalized_y, 0.0), 1.0),
+    )
+
+
+def _area_points_to_pixels(
+    points: tuple[tuple[float, float], ...],
+    frame_size: tuple[int, int],
+) -> tuple[tuple[int, int], ...]:
+    width, height = frame_size
+    return tuple(
+        (
+            int(round(x * max(width - 1, 1))),
+            int(round(y * max(height - 1, 1))),
+        )
+        for x, y in points
+    )
+
+
+def _line_hit_rect(
+    start: tuple[int, int],
+    end: tuple[int, int],
+    frame_size: tuple[int, int],
+) -> tuple[int, int, int, int]:
+    padding = 10
+    min_x = min(start[0], end[0]) - padding
+    min_y = min(start[1], end[1]) - padding
+    max_x = max(start[0], end[0]) + padding
+    max_y = max(start[1], end[1]) + padding
+    return _clip_rect(
+        (min_x, min_y, max_x - min_x, max_y - min_y),
+        frame_size[0],
+        frame_size[1],
+    )
+
+
+def _center_rect(center: tuple[int, int], size: int) -> tuple[int, int, int, int]:
+    return (center[0] - size // 2, center[1] - size // 2, size, size)
+
+
 def _cycle_option(config: EffectConfig, key: str, direction: int) -> EffectConfig:
     if key == "thermal_colormap":
         value = _cycle_value(config.thermal_colormap, COLORMAP_CHOICES, direction)
@@ -535,6 +699,20 @@ def _draw_value_pill(
     text_x = rect[0] + max(6, (rect[2] - text_size[0]) // 2)
     text_y = rect[1] + (rect[3] + text_size[1]) // 2
     _put_text(image, text, (text_x, text_y), 0.44, text_color, 1)
+
+
+def _draw_centered_text(
+    image: np.ndarray,
+    text: str,
+    rect: tuple[int, int, int, int],
+    scale: float,
+    color: tuple[int, int, int],
+    thickness: int,
+) -> None:
+    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)
+    text_x = rect[0] + max(1, (rect[2] - text_size[0]) // 2)
+    text_y = rect[1] + (rect[3] + text_size[1]) // 2
+    _put_text(image, text, (text_x, text_y), scale, color, thickness)
 
 
 def _fit_text(text: str, max_width: int, scale: float) -> str:

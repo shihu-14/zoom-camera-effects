@@ -15,6 +15,7 @@ from .effects import (
     EFFECT_MODES,
     EFFECT_SCOPES,
     EffectConfig,
+    normalize_area_points,
     normalize_effect_mode,
     normalize_effect_scope,
     parse_color_bgr,
@@ -42,6 +43,7 @@ def main() -> int:
 
     try:
         outline_color_bgr = _parse_color_bgr(args.color)
+        area_points = _parse_area_points(args.area)
     except argparse.ArgumentTypeError as exc:
         parser.error(str(exc))
 
@@ -64,6 +66,7 @@ def main() -> int:
         effect=EffectConfig(
             mode=_normalize_effect_mode(args.effect),
             scope=_normalize_effect_scope(args.scope),
+            area_points=area_points,
             kernel_size=args.kernel,
             mosaic_block_size=args.block_size,
             edge_low_threshold=args.threshold_low,
@@ -105,7 +108,10 @@ class _EffectHelpParser(argparse.ArgumentParser):
 def _build_parser() -> argparse.ArgumentParser:
     default_effect = EffectConfig()
     parser = _EffectHelpParser(
-        description="Apply a camera effect to the finger quadrilateral or full frame.",
+        description=(
+            "Apply a camera effect to the finger quadrilateral, full frame, "
+            "or partial area."
+        ),
         formatter_class=_HelpFormatter,
     )
 
@@ -143,6 +149,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "--scope",
         choices=EFFECT_SCOPES,
         default=default_effect.scope,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--area",
+        "--area-points",
+        nargs="+",
+        type=_parse_area_point,
+        default=default_effect.area_points,
+        metavar="X,Y",
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
@@ -285,10 +300,30 @@ def _normalize_effect_scope(value: str) -> str:
     return normalize_effect_scope(value)
 
 
+def _parse_area_point(value: str) -> tuple[float, float]:
+    parts = value.split(",")
+    if len(parts) != 2:
+        raise argparse.ArgumentTypeError("area point must use x,y")
+    try:
+        return (float(parts[0]), float(parts[1]))
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("area point must use numeric x,y") from exc
+
+
+def _parse_area_points(
+    values: tuple[tuple[float, float], ...] | list[tuple[float, float]],
+) -> tuple[tuple[float, float], ...]:
+    try:
+        return normalize_area_points(values)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
 def _format_effect_help() -> str:
     default_effect = EffectConfig()
     effect_choices = ", ".join(EFFECT_CHOICES)
     scope_choices = ", ".join(EFFECT_SCOPES)
+    default_area = " ".join(f"{x:g},{y:g}" for x, y in default_effect.area_points)
     colormap_choices = ", ".join(COLORMAPS)
     lines = ["Effects:"]
     for mode in EFFECT_MODES:
@@ -299,6 +334,8 @@ def _format_effect_help() -> str:
             "Effect option notes:",
             f"  --effect NAME(default: {default_effect.mode}; choices: {effect_choices})",
             f"  --scope SCOPE(default: {default_effect.scope}; choices: {scope_choices})",
+            f"  --area X,Y ...(default: {default_area}; "
+            "3..10 points, clockwise from top-left)",
             "  --set-effect NAME: switch the effect in a running app and exit",
             f"  blur: --kernel({default_effect.kernel_size})",
             f"  mosaic: --block-size({default_effect.mosaic_block_size})",
@@ -315,6 +352,8 @@ def _format_effect_help() -> str:
             "  python3 -m finger_quad_effect",
             "  python3 -m finger_quad_effect --preview --effect edge",
             "  python3 -m finger_quad_effect --effect thermal --scope full",
+            "  python3 -m finger_quad_effect --scope partial "
+            "--area 0.1,0.1 0.9,0.1 0.9,0.8 0.1,0.8",
             "  python3 -m finger_quad_effect --effect blur --kernel 51",
             "  python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9",
         )

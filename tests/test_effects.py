@@ -1,10 +1,29 @@
 import numpy as np
+import pytest
 
-from finger_quad_effect.effects import EffectConfig, apply_polygon_effect
+from finger_quad_effect.effects import (
+    DEFAULT_AREA_POINTS,
+    EffectConfig,
+    apply_polygon_effect,
+)
 
 
 def test_default_effect_is_blur():
     assert EffectConfig().mode == "blur"
+
+
+def test_default_area_points_cover_full_frame():
+    assert EffectConfig().area_points == DEFAULT_AREA_POINTS
+
+
+def test_none_effect_returns_pixel_exact_copy():
+    frame = np.arange(30 * 40 * 3, dtype=np.uint8).reshape(30, 40, 3)
+    points = ((0.25, 0.25), (0.25, 0.75), (0.75, 0.75), (0.75, 0.25))
+
+    output = apply_polygon_effect(frame, points, EffectConfig(mode="none"))
+
+    assert np.array_equal(output, frame)
+    assert output is not frame
 
 
 def test_inactive_effect_returns_pixel_exact_copy():
@@ -14,6 +33,41 @@ def test_inactive_effect_returns_pixel_exact_copy():
 
     assert np.array_equal(output, frame)
     assert output is not frame
+
+
+def test_partial_scope_applies_fixed_area_without_hand_points():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (10, 20, 30)
+
+    output = apply_polygon_effect(
+        frame,
+        None,
+        EffectConfig(
+            mode="invert",
+            scope="partial",
+            area_points=((0.25, 0.25), (0.75, 0.25), (0.75, 0.75), (0.25, 0.75)),
+        ),
+    )
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert np.array_equal(output[10, 10], np.array([245, 235, 225], dtype=np.uint8))
+
+
+def test_area_points_require_a_polygon():
+    with pytest.raises(ValueError):
+        EffectConfig(scope="partial", area_points=((0.0, 0.0), (1.0, 0.0)))
+
+    with pytest.raises(ValueError):
+        EffectConfig(
+            scope="partial",
+            area_points=tuple((index / 10.0, index / 10.0) for index in range(11)),
+        )
+
+    with pytest.raises(ValueError):
+        EffectConfig(
+            scope="partial",
+            area_points=((0.0, 0.0), (0.5, 0.5), (1.0, 1.0)),
+        )
 
 
 def test_full_scope_applies_effect_without_polygon():

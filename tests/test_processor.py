@@ -49,6 +49,25 @@ def test_processor_applies_full_scope_on_inactive_frame():
     assert np.array_equal(output[10, 10], np.array([245, 235, 225], dtype=np.uint8))
 
 
+def test_processor_applies_partial_scope_on_inactive_frame():
+    frame = np.zeros((20, 20, 3), dtype=np.uint8)
+    frame[:, :] = (10, 20, 30)
+    inactive = DetectionResult(False)
+    processor = FrameProcessor(
+        SequenceDetector([inactive]),
+        EffectConfig(
+            mode="invert",
+            scope="partial",
+            area_points=((0.25, 0.25), (0.75, 0.25), (0.75, 0.75), (0.25, 0.75)),
+        ),
+    )
+
+    output = processor.process(frame).frame_bgr
+
+    assert np.array_equal(output[1, 1], frame[1, 1])
+    assert np.array_equal(output[10, 10], np.array([245, 235, 225], dtype=np.uint8))
+
+
 def test_processor_smooths_active_points_and_resets_on_inactive_frame():
     frame = np.zeros((10, 10, 3), dtype=np.uint8)
     first = DetectionResult(
