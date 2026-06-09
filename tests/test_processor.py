@@ -1,9 +1,9 @@
 import numpy as np
 
-from finger_quad_effect.detection import DetectionResult
-from finger_quad_effect.effects import EffectConfig
-from finger_quad_effect.geometry import estimate_plane_equation
-from finger_quad_effect.processor import FrameProcessor
+from zoom_camera_effects.detection import DetectionResult
+from zoom_camera_effects.effects import EffectConfig
+from zoom_camera_effects.geometry import estimate_plane_equation
+from zoom_camera_effects.processor import FrameProcessor
 
 
 class SequenceDetector:

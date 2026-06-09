@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from finger_quad_effect.effects import (
+from zoom_camera_effects.effects import (
     DEFAULT_AREA_POINTS,
     EffectConfig,
     apply_polygon_effect,

@@ -1,4 +1,4 @@
-from finger_quad_effect.hand_tracker import _import_mediapipe
+from zoom_camera_effects.hand_tracker import _import_mediapipe
 
 
 def test_mediapipe_solutions_hands_api_is_available():

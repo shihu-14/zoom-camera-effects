@@ -1,4 +1,4 @@
-"""On-frame OpenCV runtime controls for Finger Quad Effect."""
+"""On-frame OpenCV runtime controls for Zoom Camera Effects."""
 
 from __future__ import annotations
 
@@ -872,7 +872,7 @@ def _point_in_rect(x: int, y: int, rect: tuple[int, int, int, int]) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Finger Quad Effect on-frame UI helpers."
+        description="Zoom Camera Effects on-frame UI helpers."
     )
     parser.parse_args()
     return 0

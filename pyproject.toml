@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "finger-quad-effect"
+name = "zoom-camera-effects"
 version = "0.1.0"
-description = "Real-time hand gesture quadrilateral effects with virtual camera output."
+description = "Real-time scoped camera effects with virtual camera output."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -21,7 +21,7 @@ dev = [
 ]
 
 [project.scripts]
-finger-quad-effect = "finger_quad_effect.cli:main"
+zoom-camera-effects = "zoom_camera_effects.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

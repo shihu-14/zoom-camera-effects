@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from finger_quad_effect.effects import EffectConfig
-from finger_quad_effect.ui import OverlayControlUI
+from zoom_camera_effects.effects import EffectConfig
+from zoom_camera_effects.ui import OverlayControlUI
 
 
 def test_overlay_ui_renders_on_frame():

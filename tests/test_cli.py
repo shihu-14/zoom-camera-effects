@@ -1,6 +1,6 @@
 import pytest
 
-from finger_quad_effect.cli import (
+from zoom_camera_effects.cli import (
     _build_parser,
     _format_effect_help,
     _parse_color_bgr,
@@ -45,8 +45,8 @@ def test_cli_passes_full_effect_scope(monkeypatch):
         captured["config"] = config
         return 0
 
-    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
-    monkeypatch.setattr("sys.argv", ["finger_quad_effect", "--scope", "full"])
+    monkeypatch.setattr("zoom_camera_effects.cli.run_app", fake_run_app)
+    monkeypatch.setattr("sys.argv", ["zoom_camera_effects", "--scope", "full"])
 
     assert main() == 0
     assert captured["config"].effect.scope == "full"
@@ -59,11 +59,11 @@ def test_cli_passes_partial_area(monkeypatch):
         captured["config"] = config
         return 0
 
-    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
+    monkeypatch.setattr("zoom_camera_effects.cli.run_app", fake_run_app)
     monkeypatch.setattr(
         "sys.argv",
         [
-            "finger_quad_effect",
+            "zoom_camera_effects",
             "--scope",
             "partial",
             "--area",
@@ -89,11 +89,11 @@ def test_cli_passes_outline_fill_options(monkeypatch):
         captured["config"] = config
         return 0
 
-    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
+    monkeypatch.setattr("zoom_camera_effects.cli.run_app", fake_run_app)
     monkeypatch.setattr(
         "sys.argv",
         [
-            "finger_quad_effect",
+            "zoom_camera_effects",
             "--effect",
             "outline",
             "--fill",
@@ -110,7 +110,7 @@ def test_cli_passes_outline_fill_options(monkeypatch):
 def test_cli_rejects_too_few_area_points(monkeypatch):
     monkeypatch.setattr(
         "sys.argv",
-        ["finger_quad_effect", "--scope", "partial", "--area", "0,0", "1,0"],
+        ["zoom_camera_effects", "--scope", "partial", "--area", "0,0", "1,0"],
     )
 
     with pytest.raises(SystemExit):
@@ -124,8 +124,8 @@ def test_preview_disables_virtual_camera(monkeypatch):
         captured["config"] = config
         return 0
 
-    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
-    monkeypatch.setattr("sys.argv", ["finger_quad_effect", "--preview"])
+    monkeypatch.setattr("zoom_camera_effects.cli.run_app", fake_run_app)
+    monkeypatch.setattr("sys.argv", ["zoom_camera_effects", "--preview"])
 
     assert main() == 0
     assert captured["config"].preview is True
@@ -140,8 +140,8 @@ def test_cli_can_disable_ui(monkeypatch):
         captured["config"] = config
         return 0
 
-    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
-    monkeypatch.setattr("sys.argv", ["finger_quad_effect", "--no-ui"])
+    monkeypatch.setattr("zoom_camera_effects.cli.run_app", fake_run_app)
+    monkeypatch.setattr("sys.argv", ["zoom_camera_effects", "--no-ui"])
 
     assert main() == 0
     assert captured["config"].ui is False
@@ -154,8 +154,8 @@ def test_no_control_keeps_overlay_ui(monkeypatch):
         captured["config"] = config
         return 0
 
-    monkeypatch.setattr("finger_quad_effect.cli.run_app", fake_run_app)
-    monkeypatch.setattr("sys.argv", ["finger_quad_effect", "--no-control"])
+    monkeypatch.setattr("zoom_camera_effects.cli.run_app", fake_run_app)
+    monkeypatch.setattr("sys.argv", ["zoom_camera_effects", "--no-control"])
 
     assert main() == 0
     assert captured["config"].control_file is None

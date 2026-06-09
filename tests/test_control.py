@@ -2,13 +2,13 @@ import json
 
 import pytest
 
-from finger_quad_effect.control import (
+from zoom_camera_effects.control import (
     EffectControlReader,
     effect_config_from_mapping,
     write_effect_command,
     write_effect_config,
 )
-from finger_quad_effect.effects import EffectConfig
+from zoom_camera_effects.effects import EffectConfig
 
 
 def test_write_and_read_runtime_effect_command(tmp_path):

@@ -365,15 +365,15 @@ def _format_effect_help() -> str:
             "  sketch: no extra option yet",
             "",
             "Examples:",
-            "  python3 -m finger_quad_effect",
-            "  python3 -m finger_quad_effect --preview --effect edge",
-            "  python3 -m finger_quad_effect --effect thermal --scope full",
-            "  python3 -m finger_quad_effect --scope partial "
+            "  python3 -m zoom_camera_effects",
+            "  python3 -m zoom_camera_effects --preview --effect edge",
+            "  python3 -m zoom_camera_effects --effect thermal --scope full",
+            "  python3 -m zoom_camera_effects --scope partial "
             "--area 0.1,0.1 0.9,0.1 0.9,0.8 0.1,0.8",
-            "  python3 -m finger_quad_effect --effect outline --fill "
+            "  python3 -m zoom_camera_effects --effect outline --fill "
             "--fill-color '#202020'",
-            "  python3 -m finger_quad_effect --effect blur --kernel 51",
-            "  python3 -m finger_quad_effect --effect neon --color cyan --strength 0.9",
+            "  python3 -m zoom_camera_effects --effect blur --kernel 51",
+            "  python3 -m zoom_camera_effects --effect neon --color cyan --strength 0.9",
         )
     )
     return "\n".join(lines)

@@ -1,4 +1,4 @@
-"""Finger quadrilateral effect package."""
+"""Zoom Camera Effects package."""
 
 __all__ = ["__version__"]
 

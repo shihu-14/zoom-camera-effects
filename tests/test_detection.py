@@ -1,4 +1,4 @@
-from finger_quad_effect.detection import (
+from zoom_camera_effects.detection import (
     DetectionConfig,
     LandmarkPoint,
     RawHand,

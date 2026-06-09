@@ -16,7 +16,7 @@ from .processor import FrameProcessor
 from .ui import OverlayControlUI
 from .virtual_camera import VirtualCameraWriter
 
-DISPLAY_WINDOW_NAME = "Finger Quad Effect"
+DISPLAY_WINDOW_NAME = "Zoom Camera Effects"
 
 
 @dataclass(frozen=True)
