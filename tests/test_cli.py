@@ -274,9 +274,12 @@ def test_removed_particles_effect_is_not_accepted():
 def test_effect_help_includes_effects_and_parameter_notes():
     output = _format_effect_help()
 
+    assert "Syntax:" in output
+    assert "Syntax rules:" in output
     assert "Effects:" in output
-    assert "--none" in output
-    assert "--blur" in output
+    assert "Effect options:" in output
+    assert "none      No effect. Use: --effect none" in output
+    assert "blur      Gaussian blur in the selected area. Use: --effect blur" in output
     assert "mosaic" in output
     assert "particles" not in output
     assert "neon" in output
@@ -290,16 +293,20 @@ def test_effect_help_includes_effects_and_parameter_notes():
 def test_help_output_places_effects_before_advanced_without_duplicate_sections():
     output = _build_parser().format_help()
 
+    assert "usage: python3 -m zoom_camera_effects [options]" in output
     assert "\neffects:" not in output
+    assert output.count("Syntax:") == 1
+    assert output.count("Syntax rules:") == 1
     assert output.count("Effects:") == 1
-    assert output.count("Effect option notes:") == 1
+    assert output.count("Effect options:") == 1
     assert output.index("Effects:") < output.index("advanced:")
-    assert output.index("Effect option notes:") < output.index("advanced:")
-    assert "blur: --kernel(35)" in output
-    assert "--scope SCOPE(default: finger; choices: finger, full, partial)" in output
-    assert "--area X,Y ...(default: 0,0 1,0 1,1 0,1; 3..10 points" in output
-    assert "--fill(false)" in output
-    assert "--fill-color(#ffffff)" in output
+    assert output.index("Effect options:") < output.index("advanced:")
+    assert "[--kernel {kernel}]                    default: 35" in output
+    assert "[--scope {scope}]        default: finger" in output
+    assert "[--area {x,y x,y x,y [x,y]...}]" in output
+    assert "default: 0,0 1,0 1,1 0,1; 3..10 points" in output
+    assert "[--fill | --no-fill]                   default: --no-fill" in output
+    assert "[--fill-color {color}]                 default: #ffffff" in output
     assert "--sigma" not in output
 
 

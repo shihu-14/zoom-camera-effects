@@ -111,6 +111,8 @@ class _EffectHelpParser(argparse.ArgumentParser):
 def _build_parser() -> argparse.ArgumentParser:
     default_effect = EffectConfig()
     parser = _EffectHelpParser(
+        prog="python3 -m zoom_camera_effects",
+        usage="%(prog)s [options]",
         description=(
             "Apply a camera effect to the finger quadrilateral, full frame, "
             "or partial area."
@@ -336,33 +338,103 @@ def _parse_area_points(
 
 def _format_effect_help() -> str:
     default_effect = EffectConfig()
-    effect_choices = ", ".join(EFFECT_CHOICES)
-    scope_choices = ", ".join(EFFECT_SCOPES)
+    effect_choices = tuple(EFFECT_CHOICES)
+    scope_choices = " | ".join(EFFECT_SCOPES)
     default_area = " ".join(f"{x:g},{y:g}" for x, y in default_effect.area_points)
-    colormap_choices = ", ".join(COLORMAPS)
-    lines = ["Effects:"]
-    for mode in EFFECT_MODES:
-        lines.append(f"  --{mode:<9} {EFFECT_DESCRIPTIONS[mode]}")
-    lines.append("")
+    colormap_choices = tuple(COLORMAPS)
+    lines = [
+        "Syntax:",
+        "  python3 -m zoom_camera_effects [run-option]... [effect-selection]",
+        "                                 [effect-option]... [advanced-option]...",
+        "",
+        "  effect-selection:",
+        "    [--effect {effect}]",
+    ]
+    lines.extend(_format_choice_lines("      effect: ", effect_choices, "              ", 7))
     lines.extend(
         (
-            "Effect option notes:",
-            f"  --effect NAME(default: {default_effect.mode}; choices: {effect_choices})",
-            f"  --scope SCOPE(default: {default_effect.scope}; choices: {scope_choices})",
-            f"  --area X,Y ...(default: {default_area}; "
-            "3..10 points, clockwise from top-left)",
-            "  --set-effect NAME: switch the effect in a running app and exit",
-            f"  blur: --kernel({default_effect.kernel_size})",
-            f"  mosaic: --block-size({default_effect.mosaic_block_size})",
-            f"  edge: --threshold-low({default_effect.edge_low_threshold}), --threshold-high({default_effect.edge_high_threshold})",
-            f"  thermal: --colormap({default_effect.thermal_colormap}; choices: {colormap_choices})",
-            f"  noise: --strength({default_effect.noise_strength}; 0..1)",
-            f"  outline: --thickness({default_effect.outline_thickness}; auto), "
-            "--color(#000000), --fill(false), --fill-color(#ffffff)",
-            f"  neon: --threshold-low({default_effect.edge_low_threshold}), --threshold-high({default_effect.edge_high_threshold}), --color(cyan), --strength({default_effect.noise_strength})",
-            f"  glitch: --strength({default_effect.noise_strength})",
-            "  cartoon: no extra option yet",
-            "  sketch: no extra option yet",
+        "    [--scope {scope}]",
+        f"      scope: {scope_choices}",
+        "    [--area {x,y x,y x,y [x,y]...}]",
+        "    [--set-effect {effect}]",
+        "",
+        "Syntax rules:",
+        "  [ ]   optional parameter",
+        "  { }   mandatory value or choice when the option is used",
+        "  |     choose one item",
+        "  ...   repeatable parameter",
+        "  x,y   lowercase variables are values you provide",
+        "",
+        "Effects:",
+        )
+    )
+    for mode in EFFECT_MODES:
+        lines.append(f"  {mode:<9} {EFFECT_DESCRIPTIONS[mode]} Use: --effect {mode}")
+    lines.append("  monochrome Alias for grayscale. Use: --effect monochrome")
+    lines.extend(
+        (
+            "",
+            "Effect selection:",
+            f"  [--effect {{effect}}]      default: {default_effect.mode}",
+        )
+    )
+    lines.extend(
+        _format_choice_lines("                          choices: ", effect_choices, "                                   ", 7)
+    )
+    lines.extend(
+        (
+            f"  [--scope {{scope}}]        default: {default_effect.scope}",
+            f"                          choices: {scope_choices}",
+            f"  [--area {{x,y x,y x,y [x,y]...}}]",
+            f"                          default: {default_area}; 3..10 points, clockwise from top-left",
+            "  [--set-effect {effect}]  switch the effect in a running app and exit",
+            "",
+            "Effect options:",
+            "  none:",
+            "    no extra options",
+            "  blur:",
+            f"    [--kernel {{kernel}}]                    default: {default_effect.kernel_size}",
+            "  mosaic:",
+            f"    [--block-size {{block-size}}]            default: {default_effect.mosaic_block_size}",
+            "  invert:",
+            "    no extra options",
+            "  grayscale:",
+            "    no extra options",
+            "  edge:",
+            f"    [--threshold-low {{threshold}}]          default: {default_effect.edge_low_threshold}",
+            f"    [--threshold-high {{threshold}}]         default: {default_effect.edge_high_threshold}",
+            "  thermal:",
+            f"    [--colormap {{colormap}}]                default: {default_effect.thermal_colormap}",
+        )
+    )
+    lines.extend(
+        _format_choice_lines(
+            "                                           choices: ",
+            colormap_choices,
+            "                                                    ",
+            6,
+        )
+    )
+    lines.extend(
+        (
+            "  noise:",
+            f"    [--strength {{strength}}]                default: {default_effect.noise_strength}; range: 0..1",
+            "  outline:",
+            f"    [--thickness {{thickness}}]              default: {default_effect.outline_thickness} (auto)",
+            "    [--color {color}]                      default: #000000",
+            f"    [--fill | --no-fill]                   default: --{'fill' if default_effect.outline_fill else 'no-fill'}",
+            "    [--fill-color {color}]                 default: #ffffff",
+            "  neon:",
+            f"    [--threshold-low {{threshold}}]          default: {default_effect.edge_low_threshold}",
+            f"    [--threshold-high {{threshold}}]         default: {default_effect.edge_high_threshold}",
+            "    [--color {color}]                      default: #000000 (uses cyan fallback)",
+            f"    [--strength {{strength}}]                default: {default_effect.noise_strength}; range: 0..1",
+            "  glitch:",
+            f"    [--strength {{strength}}]                default: {default_effect.noise_strength}; range: 0..1",
+            "  cartoon:",
+            "    no extra options",
+            "  sketch:",
+            "    no extra options",
             "",
             "Examples:",
             "  python3 -m zoom_camera_effects",
@@ -377,6 +449,26 @@ def _format_effect_help() -> str:
         )
     )
     return "\n".join(lines)
+
+
+def _format_choice_lines(
+    prefix: str,
+    choices: tuple[str, ...],
+    subsequent_indent: str,
+    per_line: int,
+) -> list[str]:
+    chunks = [
+        " | ".join(choices[index : index + per_line])
+        for index in range(0, len(choices), per_line)
+    ]
+    if not chunks:
+        return [prefix.rstrip()]
+    lines = []
+    for index, chunk in enumerate(chunks):
+        line_prefix = prefix if index == 0 else subsequent_indent
+        delimiter = " |" if index < len(chunks) - 1 else ""
+        lines.append(line_prefix + chunk + delimiter)
+    return lines
 
 
 def _parse_color_bgr(value: str) -> tuple[int, int, int]:
