@@ -42,13 +42,21 @@ def main() -> int:
         )
 
     try:
-        outline_color_bgr = _parse_color_bgr(args.color)
-        outline_fill_color_bgr = _parse_color_bgr(args.fill_color)
-        area_points = _parse_area_points(args.area)
+        config = _build_app_config(args)
     except argparse.ArgumentTypeError as exc:
         parser.error(str(exc))
 
-    config = AppConfig(
+    try:
+        return run_app(config)
+    except RuntimeError as exc:
+        parser.exit(2, f"error: {exc}\n")
+
+
+def _build_app_config(args: argparse.Namespace) -> AppConfig:
+    outline_color_bgr = _parse_color_bgr(args.color)
+    outline_fill_color_bgr = _parse_color_bgr(args.fill_color)
+    area_points = _parse_area_points(args.area)
+    return AppConfig(
         camera_index=args.camera_index,
         width=args.width,
         height=args.height,
@@ -84,10 +92,6 @@ def main() -> int:
         min_detection_confidence=args.min_detection_confidence,
         min_tracking_confidence=args.min_tracking_confidence,
     )
-    try:
-        return run_app(config)
-    except RuntimeError as exc:
-        parser.exit(2, f"error: {exc}\n")
 
 
 class _HelpFormatter(
