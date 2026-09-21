@@ -8,17 +8,17 @@
 
 **Tech Stack:** Python 3.10+、MediaPipe、NumPy、OpenCV、pyvirtualcam、pytest。依存の追加・更新は行わない。
 
-**Spec:** この文書の「依頼内容と設計条件」。今回は計画のみを作成する依頼のため、設計案と実施手順を一つの文書にまとめる。
+**Spec:** この文書の「依頼内容と設計条件」。当初の計画作成依頼に合わせて、設計案と実施手順を一つの文書にまとめた。
 
-**状態:** 提案。以下の実装タスクはすべて未着手。
+**状態:** 2026-09-21 のユーザー承認に基づき、Task 1–3 を実装済み。自動検証・独立レビューは完了。カメラ権限がないため実機操作・映像出力は未検証。
 
 ## 依頼内容と設計条件
 
 - 専用の通常 Git ブランチ `refactor/plan-camera-effects-cleanup` で作業する。worktree は作成しない。
-- 今回の成果物はリファクタリング計画。製品コード、テスト、依存設定は変更しない。
+- 当初は計画のみを作成し、その後の「その計画で実行してください」という依頼で実装を開始した。依存設定は変更しない。
 - Codex の貢献をコミットの共同作者として記録する。
 - 対象箇所の指定がないため、保守性の改善を目的とし、動作を変えない最小限の整理を提案する。
-- 実装開始はユーザーからの次の依頼を待つ。計画中のコード例は実装案であり、適用済みコードではない。
+- 下記は承認された実施手順。コード例は計画時のものを残し、チェック項目と末尾の実施記録で結果を示す。
 
 ## Global Constraints
 
@@ -86,8 +86,8 @@
 
 **インターフェース:** `_build_parser().parse_args()` の `argparse.Namespace` を消費し、既存の `AppConfig` を返す非公開関数を追加する。`main() -> int` は維持する。
 
-- [ ] 変更前に `python3 -m pytest tests/test_cli.py` を実行する。
-- [ ] 次の入力境界テストを `tests/test_cli.py` に追加し、現在の実装でも成功することを確認する。これは既存動作を固定するテストであり、意図的に失敗させるための仕様変更はしない。
+- [x] 変更前に `python3 -m pytest tests/test_cli.py` を実行する。
+- [x] 次の入力境界テストを `tests/test_cli.py` に追加し、現在の実装でも成功することを確認する。これは既存動作を固定するテストであり、意図的に失敗させるための仕様変更はしない。
 
 ```python
 @pytest.mark.parametrize("options", [
@@ -106,7 +106,7 @@ def test_invalid_effect_input_does_not_start_camera(monkeypatch, options):
     assert error.value.code == 2
 ```
 
-- [ ] 現在の色・領域の変換と `AppConfig` 構築を、次の関数へそのまま移す。既定値を新たに定義しない。
+- [x] 現在の色・領域の変換と `AppConfig` 構築を、次の関数へそのまま移す。既定値を新たに定義しない。
 
 ```python
 def _build_app_config(args: argparse.Namespace) -> AppConfig:
@@ -151,7 +151,7 @@ def _build_app_config(args: argparse.Namespace) -> AppConfig:
     )
 ```
 
-- [ ] `main()` の `--set-effect` と `--doctor` の早期 return はその位置に残す。変換・構築ブロックを次へ置き換え、続く `run_app()` と `RuntimeError` の処理を維持する。
+- [x] `main()` の `--set-effect` と `--doctor` の早期 return はその位置に残す。変換・構築ブロックを次へ置き換え、続く `run_app()` と `RuntimeError` の処理を維持する。
 
 ```python
     try:
@@ -160,8 +160,8 @@ def _build_app_config(args: argparse.Namespace) -> AppConfig:
         parser.error(str(exc))
 ```
 
-- [ ] `python3 -m pytest tests/test_cli.py`、`python3 -m pytest` を実行する。ヘルプは変更前後に `PYTHONPATH=src python3 -m zoom_camera_effects --help` を実行して一時ファイルへ保存し、`diff -u` で差分がないことを確認する。
-- [ ] CLI とそのテストだけを stage し、`refactor: separate CLI configuration construction` でコミットする。
+- [x] `python3 -m pytest tests/test_cli.py`、`python3 -m pytest` を実行する。ヘルプは変更前後に `PYTHONPATH=src python3 -m zoom_camera_effects --help` を実行して一時ファイルへ保存し、`diff -u` で差分がないことを確認する。
+- [x] CLI とそのテストだけを stage し、`refactor: separate CLI configuration construction` でコミットする。
 
 **完了条件:** 同じ CLI 入力が同じ設定・終了コード・ヘルプになる。設定生成がカメラやファイルへの書込みを伴わない。
 
@@ -171,7 +171,7 @@ def _build_app_config(args: argparse.Namespace) -> AppConfig:
 
 **インターフェース:** `OverlayControlUI.render(frame_bgr, config)`、`handle_mouse(event, x, y, flags, param)`、`consume_pending_config(base_config)` を維持する。移動する補助関数の引数・戻り値・本体は変更しない。
 
-- [ ] `tests/test_ui.py` に `pytest` と `EFFECT_MODES`／`EFFECT_SCOPES` の import を追加し、次のテストが移動前に成功することを確認する。
+- [x] `tests/test_ui.py` に `pytest` と `EFFECT_MODES`／`EFFECT_SCOPES` の import を追加し、次のテストが移動前に成功することを確認する。
 
 ```python
 @pytest.mark.parametrize("mode", EFFECT_MODES)
@@ -187,7 +187,7 @@ def test_overlay_render_preserves_source_frame(mode, scope):
     assert not np.shares_memory(output, frame)
 ```
 
-- [ ] `_ui_drawing.py` を作成し、次の関数を元の順序で移す。依存は `cv2` と `numpy` のみ。
+- [x] `_ui_drawing.py` を作成し、次の関数を元の順序で移す。依存は `cv2` と `numpy` のみ。
 
 ```text
 _draw_button, _draw_arrow_button, _draw_value_pill,
@@ -195,7 +195,7 @@ _draw_centered_text, _fit_text, _draw_translucent_rect,
 _draw_gear_icon, _put_text, _rect_start, _rect_end, _clip_rect
 ```
 
-- [ ] `ui.py` は次を import する。`_fit_text` は描画モジュール内だけで使うため、`ui.py` には不要な再公開用ラッパーを追加しない。
+- [x] `ui.py` は次を import する。`_fit_text` は描画モジュール内だけで使うため、`ui.py` には不要な再公開用ラッパーを追加しない。
 
 ```python
 from ._ui_drawing import (
@@ -212,7 +212,7 @@ from ._ui_drawing import (
 )
 ```
 
-- [ ] `_ui_options.py` を作成し、以下の定義を移す。依存は `dataclasses` と既存の `effects` の型・定数・色変換。数値範囲・丸め・列挙順は編集しない。
+- [x] `_ui_options.py` を作成し、以下の定義を移す。依存は `dataclasses` と既存の `effects` の型・定数・色変換。数値範囲・丸め・列挙順は編集しない。
 
 ```text
 COLOR_CHOICES, COLORMAP_CHOICES, NumericOption, NUMERIC_OPTIONS,
@@ -221,7 +221,7 @@ _cycle_option_label, _cycle_option_value, _cycle_value,
 _format_numeric_value, _color_label
 ```
 
-- [ ] `ui.py` は次を import する。既存の非公開でない型・定数もこの import で元の位置から利用できる状態を維持する。旧実装を複製したまま残さない。
+- [x] `ui.py` は次を import する。既存の非公開でない型・定数もこの import で元の位置から利用できる状態を維持する。旧実装を複製したまま残さない。
 
 ```python
 from ._ui_options import (
@@ -238,9 +238,9 @@ from ._ui_options import (
 )
 ```
 
-- [ ] `HitRegion`、全 `OverlayControlUI` メソッド、`_pixel_to_normalized_point`、`_area_points_to_pixels`、`_line_hit_rect`、`_center_rect`、`_point_in_rect`、UI の `main()` は元のファイルに残す。状態同期や描画順を変更しない。
-- [ ] `python3 -m pytest tests/test_ui.py tests/test_effects.py`、`python3 -m pytest` を実行する。既存テストの slider／drag／add-delete／timeout の期待値を変更しない。
-- [ ] UI と内部モジュール2ファイル、そのテストだけを stage し、`refactor: extract stateless overlay UI helpers` でコミットする。
+- [x] `HitRegion`、全 `OverlayControlUI` メソッド、`_pixel_to_normalized_point`、`_area_points_to_pixels`、`_line_hit_rect`、`_center_rect`、`_point_in_rect`、UI の `main()` は元のファイルに残す。状態同期や描画順を変更しない。
+- [x] `python3 -m pytest tests/test_ui.py tests/test_effects.py`、`python3 -m pytest` を実行する。既存テストの slider／drag／add-delete／timeout の期待値を変更しない。
+- [x] UI と内部モジュール2ファイル、そのテストだけを stage し、`refactor: extract stateless overlay UI helpers` でコミットする。
 
 **完了条件:** UI 本体は操作状態とレイアウトを担当し、描画補助・設定値変換を独立して読める。入力フレーム、色、レイアウト、ヒット領域の優先順位が維持される。
 
@@ -250,7 +250,7 @@ from ._ui_options import (
 
 **インターフェース:** `FrameProcessor`、`EffectControlReader | None`、`OverlayControlUI | None` を消費し、processor の既存 setter で設定を更新する非公開関数を追加する。`run_app(config: AppConfig) -> int` は変更しない。
 
-- [ ] 次のテストを `tests/test_app.py` に追加する。実機・MediaPipe・OBS を起動せず、現在の `_loop()` で全ケースが成功することを確認する。
+- [x] 次のテストを `tests/test_app.py` に追加する。実機・MediaPipe・OBS を起動せず、現在の `_loop()` で全ケースが成功することを確認する。
 
 ```python
 from types import SimpleNamespace
@@ -334,7 +334,7 @@ def test_loop_updates_config_then_sends_frame_before_overlay(
     assert ("bad command" in capsys.readouterr().out) == (command == "invalid")
 ```
 
-- [ ] 次の関数を `app.py` に追加する。処理順序、比較条件、ログ文、捕捉する例外型を維持する。
+- [x] 次の関数を `app.py` に追加する。処理順序、比較条件、ログ文、捕捉する例外型を維持する。
 
 ```python
 def _update_effect_config(
@@ -358,26 +358,26 @@ def _update_effect_config(
             processor.set_effect_config(effect_config)
 ```
 
-- [ ] `_loop()` の `while True:` 直下の設定更新2ブロックを、次の1行で置き換える。`capture.read()` 以降と初期化・終了処理には手を加えない。
+- [x] `_loop()` の `while True:` 直下の設定更新2ブロックを、次の1行で置き換える。`capture.read()` 以降と初期化・終了処理には手を加えない。
 
 ```python
         _update_effect_config(processor, control_reader, overlay_ui)
 ```
 
-- [ ] `python3 -m pytest tests/test_app.py tests/test_control.py tests/test_processor.py`、`python3 -m pytest` を実行する。
-- [ ] app とそのテストだけを stage し、`refactor: isolate runtime effect configuration updates` でコミットする。
+- [x] `python3 -m pytest tests/test_app.py tests/test_control.py tests/test_processor.py`、`python3 -m pytest` を実行する。
+- [x] app とそのテストだけを stage し、`refactor: isolate runtime effect configuration updates` でコミットする。
 
 **完了条件:** 設定更新の順序と失敗時の継続動作をテストで固定し、フレームループから独立して読める。映像処理・送信・UI 表示・終了の順序は維持される。
 
 ## 実装時の最終確認
 
-- [ ] `python3 -m pytest` が全件成功する。
-- [ ] `git diff --check` が成功する。
-- [ ] `PYTHONPATH=src python3 -m zoom_camera_effects --help` の変更前後に差分がない。
-- [ ] `python3 -m pip wheel --no-deps --no-build-isolation . --wheel-dir /tmp/zoom-camera-effects-wheel-check` で既存のビルド設定を確認する。出力された wheel に新規内部モジュール2つが含まれることを確認する。
-- [ ] 実装段階では `--preview --max-frames 30` と、仮想カメラへの `--max-frames 30` を試す。カメラ・OBS が利用できない場合は未検証と記録し、pytest の成功で実機確認済みとは扱わない。
-- [ ] 実機で mirror、effect／scope の切替、slider、部分領域の追加・移動・削除、UI の開閉と3秒超の非表示を確認する。会議アプリ側へ UI が映らないことも確認する。
-- [ ] 変更ファイルを限定してコミットし、同じ作業ブランチを push する。main へのマージはこの計画には含めない。
+- [x] `python3 -m pytest` が全件成功する。
+- [x] `git diff --check` が成功する。
+- [x] `PYTHONPATH=src python3 -m zoom_camera_effects --help` の変更前後に差分がない。
+- [x] `python3 -m pip wheel --no-deps --no-build-isolation . --wheel-dir /tmp/zoom-camera-effects-wheel-check` で既存のビルド設定を確認する。出力された wheel に新規内部モジュール2つが含まれることを確認する。
+- [x] 実装段階では `--preview --max-frames 30` と、仮想カメラへの `--max-frames 30` を試す。カメラ・OBS が利用できない場合は未検証と記録し、pytest の成功で実機確認済みとは扱わない。
+- [ ] 実機で mirror、effect／scope の切替、slider、部分領域の追加・移動・削除、UI の開閉と3秒超の非表示を確認する。会議アプリ側へ UI が映らないことも確認する。**未検証:** 起動元のカメラアクセスが macOS に拒否され、実機映像を取得できなかった。
+- [x] 変更ファイルを限定してコミットし、同じ作業ブランチを push する。main へのマージはこの計画には含めない。
 
 lint／型チェックは現時点でプロジェクトに設定がないため、導入を完了条件に追加しない。各タスクは独立したコミットとし、不具合があれば該当コミットを revert できる大きさに保つ。
 
@@ -400,4 +400,30 @@ lint／型チェックは現時点でプロジェクトに設定がないため�
 - テスト環境の主要パッケージ: pytest 9.0.3、NumPy 1.26.4、opencv-contrib-python 4.11.0.86、MediaPipe 0.10.21、pyvirtualcam 0.15.0。
 - この計画作成ではカメラ／仮想カメラの起動、アプリのビルド、実装タスクの適用は行っていない。
 
-未確定なのは実装を開始する時期と、この提案の採否。計画のみという依頼に従い、ここで実装へ進まない。
+## 実装・検証の結果（2026-09-21）
+
+| 段階 | コミット | 検証結果 |
+| --- | --- | --- |
+| Task 1: CLI の設定生成 | `8110d24` | CLI 34件、全体115件成功。ヘルプ差分なし |
+| Task 2: UI 補助処理 | `b62b105` | UI／effects 80件、全体154件成功 |
+| Task 3: 実行ループの設定更新 | `981599d` | app／control／processor 22件、全体157件成功 |
+
+- Task 1–3 の回帰テストは抽出前にも実行し、元の実装で成功することを確認した。新機能・仕様変更を加えず、変更前後の動作を固定する目的で使用した。
+- UI は13 effect × 3 scope × 2解像度（640×480、1280×720）× 2パネル開閉状態の156通りで、画素の SHA-256、ヒット領域、パネル矩形が変更前後で一致した。`ui` の非公開でない名前の集合も一致した。
+- 元の UI の27個の関数・クラスを AST で比較し、重複せず、シグネチャと本体がすべて維持されていることを確認した。
+- 最終の `python3 -m pytest`: **157 passed in 0.83s**。
+- 最終の `PYTHONPATH=src python3 -m zoom_camera_effects --help`: 変更前と完全一致。
+- `git diff 0b81971 HEAD --check`: 成功。
+- `python3 -m pip wheel --no-deps --no-build-isolation . --wheel-dir /tmp/zoom-camera-effects-wheel-check`: 成功。wheel に `_ui_drawing.py` と `_ui_options.py` が含まれ、その内容がソースと一致することを確認した。
+- `PYTHONPATH=src python3 -m zoom_camera_effects --preview --max-frames 30` と `PYTHONPATH=src python3 -m zoom_camera_effects --max-frames 30`: どちらもカメラアクセス拒否により終了コード2。`error: could not open camera index 0`。このため実機操作、MediaPipe の実フレーム処理、仮想カメラ出力、会議アプリの受信映像は未検証。OS 権限は変更していない。
+- 別のレビュー担当が `0b81971..981599d` を確認し、Critical／Important／Minor の指摘はいずれもなし。main にはマージしない。
+- 各実装コミットに `Co-authored-by: Codex <noreply@openai.com>` を付与した。
+
+### 実行時の判断
+
+- ユーザー指定を優先し、通常の作業ブランチを使用した。worktree による追加の隔離は行っていない。実行開始時の作業ツリーはクリーンだった。
+- 承認済み計画に従い、既存動作のテストを変更前後に実行した。失敗を作るための仕様変更は行っていない。今回の成功結果は新機能の検証ではなく、構造整理の回帰検証である。
+- レビューで確認した `NumericOption.__module__` の移動は、計画どおりのクラス抽出に伴うものとして許容した。`ui.NumericOption` からの import は維持される。pickle の永続化契約・利用箇所は確認できず、移動後に pickle 化した値を旧バージョンで読む互換性は保証しない。
+- 公開定数の元の import パスと値は維持した。外部から `ui` の定数名を再代入して内部処理を変更する契約・利用箇所は確認できないため、その操作を新たな互換性要件には追加しない。そのような外部利用がある場合は別途確認が必要。
+
+実機確認を実施するには、起動元へのカメラアクセス許可と利用可能な仮想カメラ環境が必要。その他の実装項目は完了している。
