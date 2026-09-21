@@ -1,8 +1,24 @@
 import cv2
 import numpy as np
+import pytest
 
-from zoom_camera_effects.effects import EffectConfig
+from zoom_camera_effects.effects import EFFECT_MODES, EFFECT_SCOPES, EffectConfig
 from zoom_camera_effects.ui import OverlayControlUI
+
+
+@pytest.mark.parametrize("mode", EFFECT_MODES)
+@pytest.mark.parametrize("scope", EFFECT_SCOPES)
+def test_overlay_render_preserves_source_frame(mode, scope):
+    frame = np.full((480, 640, 3), 64, dtype=np.uint8)
+    original = frame.copy()
+    ui = OverlayControlUI(now=lambda: 0.0)
+
+    output = ui.render(frame, EffectConfig(mode=mode, scope=scope))
+
+    assert np.array_equal(frame, original)
+    assert output.shape == frame.shape
+    assert output.dtype == frame.dtype
+    assert not np.shares_memory(output, frame)
 
 
 def test_overlay_ui_renders_on_frame():

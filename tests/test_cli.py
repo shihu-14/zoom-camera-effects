@@ -17,6 +17,25 @@ def test_cli_defaults_to_blur_and_mirrored_image():
     assert args.mirror is True
 
 
+@pytest.mark.parametrize(
+    "options",
+    [
+        ["--color", "invalid"],
+        ["--fill-color", "invalid"],
+        ["--scope", "partial", "--area", "0,0", "1,0"],
+    ],
+)
+def test_invalid_effect_input_does_not_start_camera(monkeypatch, options):
+    def unexpected_run_app(config):
+        pytest.fail("camera startup must not run for invalid input")
+
+    monkeypatch.setattr("zoom_camera_effects.cli.run_app", unexpected_run_app)
+    monkeypatch.setattr("sys.argv", ["zoom_camera_effects", *options])
+    with pytest.raises(SystemExit) as error:
+        main()
+    assert error.value.code == 2
+
+
 def test_cli_can_disable_mirror():
     args = _build_parser().parse_args(["--no-mirror"])
 

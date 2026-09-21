@@ -10,6 +10,30 @@ from typing import Any, Callable
 import cv2
 import numpy as np
 
+from ._ui_drawing import (
+    _clip_rect,
+    _draw_arrow_button,
+    _draw_button,
+    _draw_centered_text,
+    _draw_gear_icon,
+    _draw_translucent_rect,
+    _draw_value_pill,
+    _put_text,
+    _rect_end,
+    _rect_start,
+)
+from ._ui_options import (
+    COLOR_CHOICES,
+    COLORMAP_CHOICES,
+    EFFECT_OPTIONS,
+    NUMERIC_OPTIONS,
+    NumericOption,
+    _cycle_option,
+    _cycle_option_label,
+    _cycle_option_value,
+    _format_numeric_value,
+    _set_numeric_from_slider,
+)
 from .effects import (
     COLOR_NAMES_BGR,
     COLORMAPS,
@@ -22,17 +46,6 @@ from .effects import (
     format_color_hex,
 )
 
-COLOR_CHOICES = (
-    "black",
-    "white",
-    "cyan",
-    "magenta",
-    "yellow",
-    "red",
-    "green",
-    "blue",
-)
-COLORMAP_CHOICES = tuple(COLORMAPS)
 PANEL_MARGIN = 12
 GEAR_SIZE = 44
 AREA_EDITOR_TIMEOUT_SECONDS = 3.0
@@ -43,66 +56,6 @@ class HitRegion:
     kind: str
     payload: Any
     rect: tuple[int, int, int, int]
-
-
-@dataclass(frozen=True)
-class NumericOption:
-    key: str
-    label: str
-    minimum: float
-    maximum: float
-    step: float
-    integer: bool = False
-    odd: bool = False
-    decimals: int = 0
-
-
-NUMERIC_OPTIONS = {
-    "kernel_size": NumericOption(
-        "kernel_size", "kernel", 3, 101, 2, integer=True, odd=True
-    ),
-    "mosaic_block_size": NumericOption(
-        "mosaic_block_size", "block", 1, 64, 1, integer=True
-    ),
-    "edge_low_threshold": NumericOption(
-        "edge_low_threshold", "low", 0, 255, 5, decimals=0
-    ),
-    "edge_high_threshold": NumericOption(
-        "edge_high_threshold", "high", 0, 255, 5, decimals=0
-    ),
-    "noise_strength": NumericOption(
-        "noise_strength", "strength", 0.0, 1.0, 0.05, decimals=2
-    ),
-    "outline_thickness": NumericOption(
-        "outline_thickness", "thickness", 0, 30, 1, integer=True
-    ),
-}
-
-EFFECT_OPTIONS: dict[EffectMode, tuple[str, ...]] = {
-    "none": (),
-    "blur": ("kernel_size",),
-    "mosaic": ("mosaic_block_size",),
-    "invert": (),
-    "grayscale": (),
-    "edge": ("edge_low_threshold", "edge_high_threshold"),
-    "thermal": ("thermal_colormap",),
-    "noise": ("noise_strength",),
-    "outline": (
-        "outline_thickness",
-        "outline_color_bgr",
-        "outline_fill",
-        "outline_fill_color_bgr",
-    ),
-    "neon": (
-        "edge_low_threshold",
-        "edge_high_threshold",
-        "noise_strength",
-        "outline_color_bgr",
-    ),
-    "glitch": ("noise_strength",),
-    "cartoon": (),
-    "sketch": (),
-}
 
 
 class OverlayControlUI:
@@ -562,33 +515,6 @@ class OverlayControlUI:
         _draw_value_pill(image, value_rect, value)
 
 
-def _set_numeric_from_slider(
-    config: EffectConfig,
-    key: str,
-    x: int,
-    rect: tuple[int, int, int, int],
-) -> EffectConfig:
-    option = NUMERIC_OPTIONS[key]
-    ratio = (x - rect[0]) / max(rect[2], 1)
-    ratio = min(max(ratio, 0.0), 1.0)
-    value = option.minimum + (option.maximum - option.minimum) * ratio
-    value = (
-        option.minimum
-        + round((value - option.minimum) / option.step) * option.step
-    )
-    if option.odd:
-        value = int(value)
-        if value % 2 == 0:
-            value += 1
-        value = min(max(value, int(option.minimum)), int(option.maximum))
-    elif option.integer:
-        value = int(round(value))
-    else:
-        value = round(value, option.decimals)
-    value = min(max(value, option.minimum), option.maximum)
-    return replace(config, **{key: value})
-
-
 def _pixel_to_normalized_point(
     x: int,
     y: int,
@@ -636,234 +562,6 @@ def _line_hit_rect(
 
 def _center_rect(center: tuple[int, int], size: int) -> tuple[int, int, int, int]:
     return (center[0] - size // 2, center[1] - size // 2, size, size)
-
-
-def _cycle_option(config: EffectConfig, key: str, direction: int) -> EffectConfig:
-    if key == "thermal_colormap":
-        value = _cycle_value(config.thermal_colormap, COLORMAP_CHOICES, direction)
-        return replace(config, thermal_colormap=value)
-    if key == "outline_fill":
-        return replace(config, outline_fill=not config.outline_fill)
-    if key in {"outline_color_bgr", "outline_fill_color_bgr"}:
-        current = _color_label(getattr(config, key))
-        value = _cycle_value(current, COLOR_CHOICES, direction)
-        return replace(config, **{key: COLOR_NAMES_BGR[value]})
-    return config
-
-
-def _cycle_option_label(key: str) -> str:
-    if key == "thermal_colormap":
-        return "colormap"
-    if key == "outline_fill":
-        return "fill"
-    if key == "outline_fill_color_bgr":
-        return "fill color"
-    return "color"
-
-
-def _cycle_option_value(config: EffectConfig, key: str) -> str:
-    if key == "thermal_colormap":
-        return config.thermal_colormap
-    if key == "outline_fill":
-        return "on" if config.outline_fill else "off"
-    return _color_label(getattr(config, key))
-
-
-def _cycle_value(value: str, choices: tuple[str, ...], direction: int) -> str:
-    try:
-        index = choices.index(value)
-    except ValueError:
-        index = 0
-    return choices[(index + direction) % len(choices)]
-
-
-def _format_numeric_value(option: NumericOption, value: float | int) -> str:
-    if option.key == "outline_thickness" and int(value) == 0:
-        return "auto"
-    if option.integer:
-        return str(int(value))
-    return f"{float(value):.{option.decimals}f}"
-
-
-def _color_label(color_bgr: tuple[int, int, int]) -> str:
-    for name in COLOR_CHOICES:
-        if COLOR_NAMES_BGR[name] == color_bgr:
-            return name
-    return format_color_hex(color_bgr)
-
-
-def _draw_button(
-    image: np.ndarray,
-    rect: tuple[int, int, int, int],
-    text: str,
-    *,
-    active: bool,
-) -> None:
-    fill = (50, 86, 118) if active else (36, 44, 52)
-    border = (114, 176, 224) if active else (82, 96, 110)
-    text_color = (248, 252, 255) if active else (214, 224, 232)
-    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), fill, -1)
-    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), border, 1)
-    text = _fit_text(text, rect[2] - 12, 0.42)
-    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
-    text_x = rect[0] + max(6, (rect[2] - text_size[0]) // 2)
-    text_y = rect[1] + (rect[3] + text_size[1]) // 2
-    _put_text(image, text, (text_x, text_y), 0.42, text_color, 1)
-
-
-def _draw_arrow_button(
-    image: np.ndarray,
-    rect: tuple[int, int, int, int],
-    direction: int,
-) -> None:
-    fill = (36, 44, 52)
-    border = (82, 96, 110)
-    icon = (225, 236, 246)
-    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), fill, -1)
-    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), border, 1)
-    center_x = rect[0] + rect[2] // 2
-    center_y = rect[1] + rect[3] // 2
-    if direction < 0:
-        points = np.array(
-            [
-                (center_x - 5, center_y),
-                (center_x + 5, center_y - 8),
-                (center_x + 5, center_y + 8),
-            ],
-            dtype=np.int32,
-        )
-    else:
-        points = np.array(
-            [
-                (center_x + 5, center_y),
-                (center_x - 5, center_y - 8),
-                (center_x - 5, center_y + 8),
-            ],
-            dtype=np.int32,
-        )
-    cv2.fillConvexPoly(image, points, icon, cv2.LINE_AA)
-
-
-def _draw_value_pill(
-    image: np.ndarray,
-    rect: tuple[int, int, int, int],
-    value: str,
-) -> None:
-    fill = (42, 53, 64)
-    border = (92, 111, 128)
-    text_color = (236, 244, 250)
-    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), fill, -1)
-    cv2.rectangle(image, _rect_start(rect), _rect_end(rect), border, 1)
-    text = _fit_text(value, rect[2] - 12, 0.44)
-    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.44, 1)
-    text_x = rect[0] + max(6, (rect[2] - text_size[0]) // 2)
-    text_y = rect[1] + (rect[3] + text_size[1]) // 2
-    _put_text(image, text, (text_x, text_y), 0.44, text_color, 1)
-
-
-def _draw_centered_text(
-    image: np.ndarray,
-    text: str,
-    rect: tuple[int, int, int, int],
-    scale: float,
-    color: tuple[int, int, int],
-    thickness: int,
-) -> None:
-    text_size, _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)
-    text_x = rect[0] + max(1, (rect[2] - text_size[0]) // 2)
-    text_y = rect[1] + (rect[3] + text_size[1]) // 2
-    _put_text(image, text, (text_x, text_y), scale, color, thickness)
-
-
-def _fit_text(text: str, max_width: int, scale: float) -> str:
-    if cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, scale, 1)[0][0] <= max_width:
-        return text
-    while len(text) > 3:
-        candidate = text[:-1] + "."
-        if (
-            cv2.getTextSize(candidate, cv2.FONT_HERSHEY_SIMPLEX, scale, 1)[0][0]
-            <= max_width
-        ):
-            return candidate
-        text = text[:-1]
-    return text
-
-
-def _draw_translucent_rect(
-    image: np.ndarray,
-    rect: tuple[int, int, int, int],
-    color: tuple[int, int, int],
-    *,
-    alpha: float,
-) -> None:
-    x, y, width, height = _clip_rect(rect, image.shape[1], image.shape[0])
-    if width <= 0 or height <= 0:
-        return
-    roi = image[y : y + height, x : x + width]
-    overlay = np.full_like(roi, color, dtype=np.uint8)
-    cv2.addWeighted(overlay, alpha, roi, 1.0 - alpha, 0, dst=roi)
-
-
-def _draw_gear_icon(
-    image: np.ndarray,
-    center: tuple[int, int],
-    radius: int,
-    color: tuple[int, int, int],
-) -> None:
-    cx, cy = center
-    for angle in np.linspace(0, np.pi * 2, 8, endpoint=False):
-        inner = (
-            int(cx + np.cos(angle) * radius * 0.72),
-            int(cy + np.sin(angle) * radius * 0.72),
-        )
-        outer = (
-            int(cx + np.cos(angle) * radius * 1.12),
-            int(cy + np.sin(angle) * radius * 1.12),
-        )
-        cv2.line(image, inner, outer, color, 2, cv2.LINE_AA)
-    cv2.circle(image, center, radius, color, 2, cv2.LINE_AA)
-    cv2.circle(image, center, max(3, radius // 3), color, 2, cv2.LINE_AA)
-
-
-def _put_text(
-    image: np.ndarray,
-    text: str,
-    origin: tuple[int, int],
-    scale: float,
-    color: tuple[int, int, int],
-    thickness: int,
-) -> None:
-    cv2.putText(
-        image,
-        text,
-        origin,
-        cv2.FONT_HERSHEY_SIMPLEX,
-        scale,
-        color,
-        thickness,
-        cv2.LINE_AA,
-    )
-
-
-def _rect_start(rect: tuple[int, int, int, int]) -> tuple[int, int]:
-    return (rect[0], rect[1])
-
-
-def _rect_end(rect: tuple[int, int, int, int]) -> tuple[int, int]:
-    return (rect[0] + rect[2], rect[1] + rect[3])
-
-
-def _clip_rect(
-    rect: tuple[int, int, int, int],
-    image_width: int,
-    image_height: int,
-) -> tuple[int, int, int, int]:
-    x, y, width, height = rect
-    x = min(max(x, 0), image_width)
-    y = min(max(y, 0), image_height)
-    width = min(width, image_width - x)
-    height = min(height, image_height - y)
-    return x, y, width, height
 
 
 def _point_in_rect(x: int, y: int, rect: tuple[int, int, int, int]) -> bool:

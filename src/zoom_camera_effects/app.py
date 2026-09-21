@@ -77,6 +77,27 @@ def run_app(config: AppConfig) -> int:
             cv2.destroyAllWindows()
 
 
+def _update_effect_config(
+    processor: FrameProcessor,
+    control_reader: EffectControlReader | None,
+    overlay_ui: OverlayControlUI | None,
+) -> None:
+    if control_reader is not None:
+        try:
+            effect_config = control_reader.read_config(processor.effect_config)
+        except ValueError as exc:
+            print(f"warning: ignoring runtime control command: {exc}")
+            effect_config = None
+        if effect_config is not None and effect_config != processor.effect_config:
+            processor.set_effect_config(effect_config)
+            print(f"effect switched: {effect_config.mode}")
+
+    if overlay_ui is not None:
+        effect_config = overlay_ui.consume_pending_config(processor.effect_config)
+        if effect_config is not None and effect_config != processor.effect_config:
+            processor.set_effect_config(effect_config)
+
+
 def _loop(
     capture: cv2.VideoCapture,
     processor: FrameProcessor,
@@ -103,20 +124,7 @@ def _loop(
             cv2.setMouseCallback(DISPLAY_WINDOW_NAME, overlay_ui.handle_mouse)
 
     while True:
-        if control_reader is not None:
-            try:
-                effect_config = control_reader.read_config(processor.effect_config)
-            except ValueError as exc:
-                print(f"warning: ignoring runtime control command: {exc}")
-                effect_config = None
-            if effect_config is not None and effect_config != processor.effect_config:
-                processor.set_effect_config(effect_config)
-                print(f"effect switched: {effect_config.mode}")
-
-        if overlay_ui is not None:
-            effect_config = overlay_ui.consume_pending_config(processor.effect_config)
-            if effect_config is not None and effect_config != processor.effect_config:
-                processor.set_effect_config(effect_config)
+        _update_effect_config(processor, control_reader, overlay_ui)
 
         ok, frame = capture.read()
         if not ok:
